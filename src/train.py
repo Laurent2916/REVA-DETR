@@ -26,7 +26,6 @@ def train_net(
     epochs: int = 5,
     batch_size: int = 1,
     learning_rate: float = 1e-5,
-    val_percent: float = 0.1,
     save_checkpoint: bool = True,
     img_scale: float = 0.5,
     amp: bool = False,
@@ -201,24 +200,16 @@ def get_args():
         help="Downscaling factor of the images",
     )
     parser.add_argument(
-        "--validation",
-        "-v",
-        dest="val",
-        type=float,
-        default=10.0,
-        help="Percent of the data that is used as validation (0-100)",
-    )
-    parser.add_argument(
         "--amp",
         action="store_true",
-        default=False,
+        default=True,
         help="Use mixed precision",
     )
     parser.add_argument(
         "--classes",
         "-c",
         type=int,
-        default=2,
+        default=1,
         help="Number of classes",
     )
 
@@ -232,9 +223,6 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logging.info(f"Using device {device}")
 
-    # Change here to adapt to your data
-    # n_channels=3 for RGB images
-    # n_classes is the number of probabilities you want to get per pixel
     net = UNet(n_channels=3, n_classes=args.classes)
 
     logging.info(
