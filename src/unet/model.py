@@ -4,23 +4,26 @@ from .blocks import *
 
 
 class UNet(nn.Module):
-    def __init__(self, n_channels, n_classes, bilinear=False):
+    def __init__(self, n_channels, n_classes, features=[64, 128, 256, 512]):
         super(UNet, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
-        self.bilinear = bilinear
 
-        self.inc = DoubleConv(n_channels, 64)
-        self.down1 = Down(64, 128)
-        self.down2 = Down(128, 256)
-        self.down3 = Down(256, 512)
-        factor = 2 if bilinear else 1
-        self.down4 = Down(512, 1024 // factor)
-        self.up1 = Up(1024, 512 // factor, bilinear)
-        self.up2 = Up(512, 256 // factor, bilinear)
-        self.up3 = Up(256, 128 // factor, bilinear)
-        self.up4 = Up(128, 64, bilinear)
-        self.outc = OutConv(64, n_classes)
+        self.inc = DoubleConv(n_channels, features[0])
+
+        self.downs = nn.ModuleList()
+        for i in range(len(features) - 1):
+            self.downs.append(
+                Down(*features[i : i + 2]),
+            )
+
+        self.ups = nn.ModuleList()
+        for i in range(len(features) - 1):
+            self.ups.append(
+                Up(*features[::-1][i : i + 2]),
+            )
+
+        self.outc = OutConv(features[0], n_classes)
 
     def forward(self, x):
         x1 = self.inc(x)

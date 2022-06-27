@@ -215,12 +215,6 @@ def get_args():
         help="Use mixed precision",
     )
     parser.add_argument(
-        "--bilinear",
-        action="store_true",
-        default=False,
-        help="Use bilinear upsampling",
-    )
-    parser.add_argument(
         "--classes",
         "-c",
         type=int,
@@ -241,13 +235,14 @@ if __name__ == "__main__":
     # Change here to adapt to your data
     # n_channels=3 for RGB images
     # n_classes is the number of probabilities you want to get per pixel
-    net = UNet(n_channels=3, n_classes=args.classes, bilinear=args.bilinear)
+    net = UNet(n_channels=3, n_classes=args.classes)
 
     logging.info(
-        f"Network:\n"
-        f"\t{net.n_channels} input channels\n"
-        f"\t{net.n_classes} output channels (classes)\n"
-        f'\t{"Bilinear" if net.bilinear else "Transposed conv"} upscaling'
+        f"""
+        Network:\n
+        \t{net.n_channels} input channels\n
+        \t{net.n_classes} output channels (classes)\n
+        """
     )
 
     if args.load:
