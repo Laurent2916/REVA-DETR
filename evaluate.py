@@ -11,8 +11,8 @@ def evaluate(net, dataloader, device):
     dice_score = 0
 
     # iterate over the validation set
-    for batch in tqdm(dataloader, total=num_val_batches, desc='Validation round', unit='batch', leave=False):
-        image, mask_true = batch['image'], batch['mask']
+    for batch in tqdm(dataloader, total=num_val_batches, desc="Validation round", unit="batch", leave=False):
+        image, mask_true = batch["image"], batch["mask"]
         # move images and labels to correct device and type
         image = image.to(device=device, dtype=torch.float32)
         mask_true = mask_true.to(device=device, dtype=torch.long)
@@ -30,9 +30,9 @@ def evaluate(net, dataloader, device):
             else:
                 mask_pred = F.one_hot(mask_pred.argmax(dim=1), net.n_classes).permute(0, 3, 1, 2).float()
                 # compute the Dice score, ignoring background
-                dice_score += multiclass_dice_coeff(mask_pred[:, 1:, ...], mask_true[:, 1:, ...], reduce_batch_first=False)
-
-           
+                dice_score += multiclass_dice_coeff(
+                    mask_pred[:, 1:, ...], mask_true[:, 1:, ...], reduce_batch_first=False
+                )
 
     net.train()
 
