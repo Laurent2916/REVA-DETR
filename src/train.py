@@ -13,7 +13,7 @@ from tqdm import tqdm
 from evaluate import evaluate
 from src.utils.dataset import BasicDataset, CarvanaDataset
 from unet import UNet
-from utils.dice_score import dice_loss
+from src.utils.dice import dice_loss
 
 dir_img = Path("./data/imgs/")
 dir_mask = Path("./data/masks/")
