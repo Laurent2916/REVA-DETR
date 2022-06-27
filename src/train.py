@@ -11,8 +11,8 @@ from torch.utils.data import DataLoader, random_split
 from tqdm import tqdm
 
 from evaluate import evaluate
+from src.utils.dataset import BasicDataset, CarvanaDataset
 from unet import UNet
-from utils.data_loading import BasicDataset, CarvanaDataset
 from utils.dice_score import dice_loss
 
 dir_img = Path("./data/imgs/")
