@@ -1,0 +1,37 @@
+[tool.poetry]
+name = "unet"
+version = "0.1.0"
+description = "unet"
+authors = ["laurent"]
+
+[tool.poetry.dependencies]
+python = ">=3.8,<3.11"
+torch = "^1.11.0"
+numpy = "^1.23.0"
+scipy = "^1.8.1"
+albumentations = "^1.2.0"
+tqdm = "^4.64.0"
+torchvision = "^0.12.0"
+matplotlib = "^3.5.2"
+
+[tool.poetry.dev-dependencies]
+black = "^22.3.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+exclude = '''
+/(
+  \.git
+  \.venv
+)/
+'''
+include = '\.pyi?$'
+line-length = 120
+target-version = ["py310"]
+
+[tool.isort]
+multi_line_output = 3
+profile = "black"
