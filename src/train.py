@@ -2,22 +2,28 @@ import argparse
 import logging
 from pathlib import Path
 
+import albumentations as A
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import wandb
+from albumentations.pytorch import ToTensorV2
 from torch import optim
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+import wandb
 from evaluate import evaluate
-from src.utils.dataset import BasicDataset, CarvanaDataset
-from unet import UNet
+from src.utils.dataset import SphereDataset
 from src.utils.dice import dice_loss
+from unet import UNet
+from utils.paste import RandomPaste
 
-dir_img = Path("./data/imgs/")
-dir_mask = Path("./data/masks/")
-dir_checkpoint = Path("./checkpoints/")
+CHECKPOINT_DIR = Path("./checkpoints/")
+DIR_TRAIN_IMG = Path("/home/lilian/data_disk/lfainsin/train2017")
+DIR_VALID_IMG = Path("/home/lilian/data_disk/lfainsin/val2017/")
+# DIR_VALID_MASK = Path("/home/lilian/data_disk/lfainsin/val2017mask/")
+DIR_SPHERE_IMG = Path("/home/lilian/data_disk/lfainsin/spheres/Images/")
+DIR_SPHERE_MASK = Path("/home/lilian/data_disk/lfainsin/spheres/Masks/")
 
 
 def train_net(
@@ -27,37 +33,48 @@ def train_net(
     batch_size: int = 1,
     learning_rate: float = 1e-5,
     save_checkpoint: bool = True,
-    img_scale: float = 0.5,
     amp: bool = False,
 ):
-    # 1. Create dataset
-    try:
-        dataset = CarvanaDataset(dir_img, dir_mask, img_scale)
-    except (AssertionError, RuntimeError):
-        dataset = BasicDataset(dir_img, dir_mask, img_scale)
+    # 1. Create transforms
+    tf_train = A.Compose(
+        [
+            A.Flip(),
+            A.ColorJitter(),
+            RandomPaste(5, 0.2, DIR_SPHERE_IMG, DIR_SPHERE_MASK),
+            A.ISONoise(),
+            A.ToFloat(max_value=255),
+            A.pytorch.ToTensorV2(),
+        ],
+    )
 
-    # 2. Split into train / validation partitions
-    n_val = int(len(dataset) * val_percent)
-    n_train = len(dataset) - n_val
-    train_set, val_set = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(0))
+    tf_valid = A.Compose(
+        [
+            RandomPaste(5, 0.2, DIR_SPHERE_IMG, DIR_SPHERE_MASK),
+            A.ToFloat(max_value=255),
+            ToTensorV2(),
+        ],
+    )
+
+    # 2. Create datasets
+    ds_train = SphereDataset(images_dir=DIR_TRAIN_IMG, transform=tf_train)
+    # ds_valid = SphereDataset(images_dir=DIR_VALID_IMG, masks_dir=DIR_VALID_MASK, transform=tf_valid)
+    ds_valid = SphereDataset(images_dir=DIR_VALID_IMG, transform=tf_valid)
 
     # 3. Create data loaders
     loader_args = dict(batch_size=batch_size, num_workers=4, pin_memory=True)
-    train_loader = DataLoader(train_set, shuffle=True, **loader_args)
-    val_loader = DataLoader(val_set, shuffle=False, drop_last=True, **loader_args)
+    train_loader = DataLoader(ds_train, shuffle=True, **loader_args)
+    val_loader = DataLoader(ds_valid, shuffle=False, drop_last=True, **loader_args)
 
     # (Initialize logging)
-    experiment = wandb.init(project="U-Net", resume="allow", anonymous="must")
-    experiment.config.update(
-        dict(
+    experiment = wandb.init(
+        project="U-Net",
+        config=dict(
             epochs=epochs,
             batch_size=batch_size,
             learning_rate=learning_rate,
-            val_percent=val_percent,
             save_checkpoint=save_checkpoint,
-            img_scale=img_scale,
             amp=amp,
-        )
+        ),
     )
 
     logging.info(
@@ -65,13 +82,12 @@ def train_net(
         Epochs:          {epochs}
         Batch size:      {batch_size}
         Learning rate:   {learning_rate}
-        Training size:   {n_train}
-        Validation size: {n_val}
+        Training size:   {len(ds_train)}
+        Validation size: {len(ds_valid)}
         Checkpoints:     {save_checkpoint}
         Device:          {device.type}
-        Images scaling:  {img_scale}
         Mixed Precision: {amp}
-    """
+        """
     )
 
     # 4. Set up the optimizer, the loss, the learning rate scheduler and the loss scaling for AMP
@@ -85,7 +101,8 @@ def train_net(
     for epoch in range(1, epochs + 1):
         net.train()
         epoch_loss = 0
-        with tqdm(total=n_train, desc=f"Epoch {epoch}/{epochs}", unit="img") as pbar:
+
+        with tqdm(total=len(ds_train), desc=f"Epoch {epoch}/{epochs}", unit="img") as pbar:
             for batch in train_loader:
                 images = batch["image"]
                 true_masks = batch["mask"]
@@ -119,7 +136,7 @@ def train_net(
                 pbar.set_postfix(**{"loss (batch)": loss.item()})
 
                 # Evaluation round
-                division_step = n_train // (10 * batch_size)
+                division_step = len(ds_train) // (10 * batch_size)
                 if division_step > 0:
                     if global_step % division_step == 0:
                         histograms = {}
@@ -150,8 +167,8 @@ def train_net(
                         )
 
         if save_checkpoint:
-            Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
-            torch.save(net.state_dict(), str(dir_checkpoint / "checkpoint_epoch{}.pth".format(epoch)))
+            Path(CHECKPOINT_DIR).mkdir(parents=True, exist_ok=True)
+            torch.save(net.state_dict(), str(CHECKPOINT_DIR / "checkpoint_epoch{}.pth".format(epoch)))
             logging.info(f"Checkpoint {epoch} saved!")
 
 
@@ -173,7 +190,7 @@ def get_args():
         dest="batch_size",
         metavar="B",
         type=int,
-        default=1,
+        default=32,
         help="Batch size",
     )
     parser.add_argument(
@@ -191,13 +208,6 @@ def get_args():
         type=str,
         default=False,
         help="Load model from a .pth file",
-    )
-    parser.add_argument(
-        "--scale",
-        "-s",
-        type=float,
-        default=0.5,
-        help="Downscaling factor of the images",
     )
     parser.add_argument(
         "--amp",
@@ -220,16 +230,16 @@ if __name__ == "__main__":
     args = get_args()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logging.info(f"Using device {device}")
 
     net = UNet(n_channels=3, n_classes=args.classes)
 
     logging.info(
-        f"""
-        Network:\n
-        \t{net.n_channels} input channels\n
-        \t{net.n_classes} output channels (classes)\n
+        f"""Network:
+        \t{net.n_channels} input channels
+        \t{net.n_classes} output channels (classes)
         """
     )
 
@@ -238,6 +248,7 @@ if __name__ == "__main__":
         logging.info(f"Model loaded from {args.load}")
 
     net.to(device=device)
+
     try:
         train_net(
             net=net,
@@ -245,8 +256,6 @@ if __name__ == "__main__":
             batch_size=args.batch_size,
             learning_rate=args.lr,
             device=device,
-            img_scale=args.scale,
-            val_percent=args.val / 100,
             amp=args.amp,
         )
     except KeyboardInterrupt:

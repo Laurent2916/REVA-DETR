@@ -20,7 +20,7 @@ class UNet(nn.Module):
         self.ups = nn.ModuleList()
         for i in range(len(features) - 1):
             self.ups.append(
-                Up(*features[-1 - i : -1 - i + 3 : -1]),
+                Up(*features[-1 - i : -3 - i : -1]),
             )
 
         self.outc = OutConv(features[0], n_classes)
