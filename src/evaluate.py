@@ -1,8 +1,8 @@
 import torch
-import torch.nn.functional as F
 from tqdm import tqdm
 
-from src.utils.dice import dice_coeff, multiclass_dice_coeff
+import wandb
+from src.utils.dice import dice_coeff
 
 
 def evaluate(net, dataloader, device):
@@ -26,6 +26,12 @@ def evaluate(net, dataloader, device):
                 dice_score += dice_coeff(masks_pred, masks_true, reduce_batch_first=False)
 
             pbar.update(images.shape[0])
+
+    # save some images to wandb
+    table = wandb.Table(columns=["image", "mask", "prediction"])
+    for img, mask, pred in zip(images.to("cpu"), masks_true.to("cpu"), masks_pred.to("cpu")):
+        table.add_data(wandb.Image(img), wandb.Image(mask), wandb.Image(pred))
+    wandb.log({"predictions_table": table}, commit=False)
 
     net.train()
 

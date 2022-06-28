@@ -14,7 +14,6 @@ from tqdm import tqdm
 import wandb
 from evaluate import evaluate
 from src.utils.dataset import SphereDataset
-from src.utils.dice import dice_loss
 from unet import UNet
 from utils.paste import RandomPaste
 
@@ -43,7 +42,7 @@ def get_args():
         dest="batch_size",
         metavar="B",
         type=int,
-        default=10,
+        default=16,
         help="Batch size",
     )
     parser.add_argument(
@@ -195,21 +194,21 @@ def main():
 
                     wandb.log(  # log training metrics
                         {
-                            "train/epoch": epoch + step / epoch,
+                            "train/epoch": epoch + step / len(train_loader),
                             "train/train_loss": train_loss,
                         }
                     )
 
                 # Evaluation round
-                val_loss = evaluate(net, val_loader, device)
-                scheduler.step(val_loss)
+                val_score = evaluate(net, val_loader, device)
+                scheduler.step(val_score)
                 wandb.log(  # log validation metrics
                     {
-                        "val/val_loss": val_loss,
+                        "val/val_score": val_score,
                     }
                 )
 
-            print(f"Train Loss: {train_loss:.3f}, Valid Loss: {val_loss:3f}")
+            print(f"Train Loss: {train_loss:.3f}, Valid Score: {val_score:3f}")
 
             # save weights when epoch end
             Path(CHECKPOINT_DIR).mkdir(parents=True, exist_ok=True)

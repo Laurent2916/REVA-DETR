@@ -2,7 +2,6 @@ import os
 import random as rd
 
 import albumentations as A
-import cv2
 import numpy as np
 from PIL import Image
 
@@ -23,16 +22,16 @@ class RandomPaste(A.DualTransform):
     def __init__(
         self,
         nb,
-        scale_limit,
         path_paste_img_dir,
         path_paste_mask_dir,
+        scale_range=(0.1, 0.2),
         always_apply=True,
         p=1.0,
     ):
         super().__init__(always_apply, p)
         self.path_paste_img_dir = path_paste_img_dir
         self.path_paste_mask_dir = path_paste_mask_dir
-        self.scale_limit = scale_limit
+        self.scale_range = scale_range
         self.nb = nb
 
     @property
@@ -40,76 +39,77 @@ class RandomPaste(A.DualTransform):
         return ["image"]
 
     def apply(self, img, positions, paste_img, paste_mask, **params):
-        img = img.copy()
+        # convert img to Image, needed for `paste` function
+        img = Image.fromarray(img)
 
-        w, h = paste_mask.shape
-        mask_b = paste_mask > 0
-        mask_rgb_b = np.stack([mask_b, mask_b, mask_b], axis=2)
+        for pos in positions:
+            img.paste(paste_img, pos, paste_mask)
 
-        for (x, y) in positions:
-            img[x : x + w, y : y + h] = img[x : x + w, y : y + h] * ~mask_rgb_b + paste_img * mask_rgb_b
-
-        return img
+        return np.asarray(img.convert("RGB"))
 
     def apply_to_mask(self, mask, positions, paste_mask, **params):
-        mask = mask.copy()
+        # convert mask to Image, needed for `paste` function
+        mask = Image.fromarray(mask)
 
-        w, h = paste_mask.shape
-        mask_b = paste_mask > 0
+        for pos in positions:
+            mask.paste(paste_mask, pos, paste_mask)
 
-        for (x, y) in positions:
-            mask[x : x + w, y : y + h] = mask[x : x + w, y : y + h] * ~mask_b + mask_b
-
-        return mask
+        return np.asarray(mask.convert("L"))
 
     def get_params_dependent_on_targets(self, params):
+        # choose a random image inside the image folder
         filename = rd.choice(os.listdir(self.path_paste_img_dir))
 
-        paste_img = np.array(
-            Image.open(
-                os.path.join(
-                    self.path_paste_img_dir,
-                    filename,
-                )
-            ).convert("RGB"),
-            dtype=np.uint8,
-        )
-
-        paste_mask = (
-            np.array(
-                Image.open(
-                    os.path.join(
-                        self.path_paste_mask_dir,
-                        filename,
-                    )
-                ).convert("L"),
-                dtype=np.float32,
+        # load the "paste" image
+        paste_img = Image.open(
+            os.path.join(
+                self.path_paste_img_dir,
+                filename,
             )
-            / 255
-        )
+        ).convert("RGBA")
 
+        # load its respective mask
+        paste_mask = Image.open(
+            os.path.join(
+                self.path_paste_mask_dir,
+                filename,
+            )
+        ).convert("LA")
+
+        # load the target image
         target_img = params["image"]
+        target_shape = np.array(target_img.shape[:2], dtype=np.uint)
+        paste_shape = np.array(paste_img.size, dtype=np.uint)
 
-        min_scale = min(
-            target_img.shape[0] / paste_img.shape[0],
-            target_img.shape[1] / paste_img.shape[1],
+        # compute the minimum scaling to fit inside target image
+        min_scale = np.min(target_shape / paste_shape)
+
+        # randomize the relative scaling
+        scale = rd.uniform(*self.scale_range)
+
+        # rotate the image and its mask
+        angle = rd.uniform(0, 360)
+        paste_img = paste_img.rotate(angle, expand=True)
+        paste_mask = paste_mask.rotate(angle, expand=True)
+
+        # scale the "paste" image and its mask
+        paste_img = paste_img.resize(
+            tuple((paste_shape * min_scale * scale).astype(np.uint)),
+            resample=Image.Resampling.LANCZOS,
+        )
+        paste_mask = paste_mask.resize(
+            tuple((paste_shape * min_scale * scale).astype(np.uint)),
+            resample=Image.Resampling.LANCZOS,
         )
 
-        rescale_rotate = A.Compose(
-            [
-                A.Rotate(limit=360, always_apply=True, border_mode=cv2.BORDER_CONSTANT),
-                A.RandomScale(scale_limit=(min_scale * self.scale_limit - 1, -0.99), always_apply=True),
-            ],
-        )
+        # update paste_shape after scaling
+        paste_shape = np.array(paste_img.size, dtype=np.uint)
 
-        augmentations = rescale_rotate(image=paste_img, mask=paste_mask)
-        paste_img = augmentations["image"]
-        paste_mask = augmentations["mask"]
-
+        # generate some positions
         positions = []
         for _ in range(rd.randint(1, self.nb)):
-            x = rd.randint(0, target_img.shape[0] - paste_img.shape[0])
-            y = rd.randint(0, target_img.shape[1] - paste_img.shape[1])
+            x = rd.randint(0, target_shape[0] - paste_shape[0])
+            y = rd.randint(0, target_shape[1] - paste_shape[1])
             positions.append((x, y))
 
         params.update(
@@ -123,4 +123,4 @@ class RandomPaste(A.DualTransform):
         return params
 
     def get_transform_init_args_names(self):
-        return "scale_limit", "path_paste_img_dir", "path_paste_mask_dir"
+        return "scale_range", "path_paste_img_dir", "path_paste_mask_dir"
