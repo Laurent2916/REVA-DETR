@@ -19,157 +19,10 @@ from unet import UNet
 from utils.paste import RandomPaste
 
 CHECKPOINT_DIR = Path("./checkpoints/")
-DIR_TRAIN_IMG = Path("/home/lilian/data_disk/lfainsin/train2017")
-DIR_VALID_IMG = Path("/home/lilian/data_disk/lfainsin/val2017/")
-# DIR_VALID_MASK = Path("/home/lilian/data_disk/lfainsin/val2017mask/")
+DIR_TRAIN_IMG = Path("/home/lilian/data_disk/lfainsin/smoltrain2017")
+DIR_VALID_IMG = Path("/home/lilian/data_disk/lfainsin/smolval2017/")
 DIR_SPHERE_IMG = Path("/home/lilian/data_disk/lfainsin/spheres/Images/")
 DIR_SPHERE_MASK = Path("/home/lilian/data_disk/lfainsin/spheres/Masks/")
-
-
-def train_net(
-    net,
-    device,
-    epochs: int = 5,
-    batch_size: int = 1,
-    learning_rate: float = 1e-5,
-    save_checkpoint: bool = True,
-    amp: bool = False,
-):
-    # 1. Create transforms
-    tf_train = A.Compose(
-        [
-            A.Flip(),
-            A.ColorJitter(),
-            RandomPaste(5, 0.2, DIR_SPHERE_IMG, DIR_SPHERE_MASK),
-            A.ISONoise(),
-            A.ToFloat(max_value=255),
-            A.pytorch.ToTensorV2(),
-        ],
-    )
-
-    tf_valid = A.Compose(
-        [
-            RandomPaste(5, 0.2, DIR_SPHERE_IMG, DIR_SPHERE_MASK),
-            A.ToFloat(max_value=255),
-            ToTensorV2(),
-        ],
-    )
-
-    # 2. Create datasets
-    ds_train = SphereDataset(images_dir=DIR_TRAIN_IMG, transform=tf_train)
-    # ds_valid = SphereDataset(images_dir=DIR_VALID_IMG, masks_dir=DIR_VALID_MASK, transform=tf_valid)
-    ds_valid = SphereDataset(images_dir=DIR_VALID_IMG, transform=tf_valid)
-
-    # 3. Create data loaders
-    loader_args = dict(batch_size=batch_size, num_workers=4, pin_memory=True)
-    train_loader = DataLoader(ds_train, shuffle=True, **loader_args)
-    val_loader = DataLoader(ds_valid, shuffle=False, drop_last=True, **loader_args)
-
-    # (Initialize logging)
-    experiment = wandb.init(
-        project="U-Net",
-        config=dict(
-            epochs=epochs,
-            batch_size=batch_size,
-            learning_rate=learning_rate,
-            save_checkpoint=save_checkpoint,
-            amp=amp,
-        ),
-    )
-
-    logging.info(
-        f"""Starting training:
-        Epochs:          {epochs}
-        Batch size:      {batch_size}
-        Learning rate:   {learning_rate}
-        Training size:   {len(ds_train)}
-        Validation size: {len(ds_valid)}
-        Checkpoints:     {save_checkpoint}
-        Device:          {device.type}
-        Mixed Precision: {amp}
-        """
-    )
-
-    # 4. Set up the optimizer, the loss, the learning rate scheduler and the loss scaling for AMP
-    optimizer = optim.RMSprop(net.parameters(), lr=learning_rate, weight_decay=1e-8, momentum=0.9)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, "max", patience=2)  # goal: maximize Dice score
-    grad_scaler = torch.cuda.amp.GradScaler(enabled=amp)
-    criterion = nn.CrossEntropyLoss()
-    global_step = 0
-
-    # 5. Begin training
-    for epoch in range(1, epochs + 1):
-        net.train()
-        epoch_loss = 0
-
-        with tqdm(total=len(ds_train), desc=f"Epoch {epoch}/{epochs}", unit="img") as pbar:
-            for batch in train_loader:
-                images = batch["image"]
-                true_masks = batch["mask"]
-
-                assert images.shape[1] == net.n_channels, (
-                    f"Network has been defined with {net.n_channels} input channels, "
-                    f"but loaded images have {images.shape[1]} channels. Please check that "
-                    "the images are loaded correctly."
-                )
-
-                images = images.to(device=device, dtype=torch.float32)
-                true_masks = true_masks.to(device=device, dtype=torch.long)
-
-                with torch.cuda.amp.autocast(enabled=amp):
-                    masks_pred = net(images)
-                    loss = criterion(masks_pred, true_masks) + dice_loss(
-                        F.softmax(masks_pred, dim=1).float(),
-                        F.one_hot(true_masks, net.n_classes).permute(0, 3, 1, 2).float(),
-                        multiclass=True,
-                    )
-
-                optimizer.zero_grad(set_to_none=True)
-                grad_scaler.scale(loss).backward()
-                grad_scaler.step(optimizer)
-                grad_scaler.update()
-
-                pbar.update(images.shape[0])
-                global_step += 1
-                epoch_loss += loss.item()
-                experiment.log({"train loss": loss.item(), "step": global_step, "epoch": epoch})
-                pbar.set_postfix(**{"loss (batch)": loss.item()})
-
-                # Evaluation round
-                division_step = len(ds_train) // (10 * batch_size)
-                if division_step > 0:
-                    if global_step % division_step == 0:
-                        histograms = {}
-                        for tag, value in net.named_parameters():
-                            tag = tag.replace("/", ".")
-                            histograms["Weights/" + tag] = wandb.Histogram(value.data.cpu())
-                            histograms["Gradients/" + tag] = wandb.Histogram(value.grad.data.cpu())
-
-                        val_score = evaluate(net, val_loader, device)
-                        scheduler.step(val_score)
-
-                        logging.info("Validation Dice score: {}".format(val_score))
-                        experiment.log(
-                            {
-                                "learning rate": optimizer.param_groups[0]["lr"],
-                                "validation Dice": val_score,
-                                "images": wandb.Image(images[0].cpu()),
-                                "masks": {
-                                    "true": wandb.Image(true_masks[0].float().cpu()),
-                                    "pred": wandb.Image(
-                                        torch.softmax(masks_pred, dim=1).argmax(dim=1)[0].float().cpu()
-                                    ),
-                                },
-                                "step": global_step,
-                                "epoch": epoch,
-                                **histograms,
-                            }
-                        )
-
-        if save_checkpoint:
-            Path(CHECKPOINT_DIR).mkdir(parents=True, exist_ok=True)
-            torch.save(net.state_dict(), str(CHECKPOINT_DIR / "checkpoint_epoch{}.pth".format(epoch)))
-            logging.info(f"Checkpoint {epoch} saved!")
 
 
 def get_args():
@@ -190,7 +43,7 @@ def get_args():
         dest="batch_size",
         metavar="B",
         type=int,
-        default=32,
+        default=10,
         help="Batch size",
     )
     parser.add_argument(
@@ -226,39 +79,148 @@ def get_args():
     return parser.parse_args()
 
 
-if __name__ == "__main__":
+def main():
+    # get args from cli
     args = get_args()
 
+    # setup logging
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
+    # enable cuda, if possible
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logging.info(f"Using device {device}")
 
+    # 0. Create network
     net = UNet(n_channels=3, n_classes=args.classes)
-
     logging.info(
         f"""Network:
-        \t{net.n_channels} input channels
-        \t{net.n_classes} output channels (classes)
+        input channels:  {net.n_channels}
+        output channels: {net.n_classes}
         """
     )
 
+    # Load weights, if needed
     if args.load:
         net.load_state_dict(torch.load(args.load, map_location=device))
         logging.info(f"Model loaded from {args.load}")
 
+    # transfer network to device
     net.to(device=device)
 
-    try:
-        train_net(
-            net=net,
+    # 1. Create transforms
+    tf_train = A.Compose(
+        [
+            A.Resize(500, 500),
+            A.Flip(),
+            A.ColorJitter(),
+            RandomPaste(5, 0.2, DIR_SPHERE_IMG, DIR_SPHERE_MASK),
+            A.ISONoise(),
+            A.ToFloat(max_value=255),
+            A.pytorch.ToTensorV2(),
+        ],
+    )
+    tf_valid = A.Compose(
+        [
+            A.Resize(500, 500),
+            RandomPaste(5, 0.2, DIR_SPHERE_IMG, DIR_SPHERE_MASK),
+            A.ToFloat(max_value=255),
+            ToTensorV2(),
+        ],
+    )
+
+    # 2. Create datasets
+    ds_train = SphereDataset(image_dir=DIR_TRAIN_IMG, transform=tf_train)
+    ds_valid = SphereDataset(image_dir=DIR_VALID_IMG, transform=tf_valid)
+
+    # 3. Create data loaders
+    loader_args = dict(batch_size=args.batch_size, num_workers=4, pin_memory=True)
+    train_loader = DataLoader(ds_train, shuffle=True, **loader_args)
+    val_loader = DataLoader(ds_valid, shuffle=False, drop_last=True, **loader_args)
+
+    # 4. Set up the optimizer, the loss, the learning rate scheduler and the loss scaling for AMP
+    optimizer = optim.RMSprop(net.parameters(), lr=args.lr, weight_decay=1e-8, momentum=0.9)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, "max", patience=2)  # goal: maximize Dice score
+    grad_scaler = torch.cuda.amp.GradScaler(enabled=args.amp)
+    criterion = nn.BCEWithLogitsLoss()
+
+    # connect to wandb
+    wandb.init(
+        project="U-Net",
+        config=dict(
             epochs=args.epochs,
             batch_size=args.batch_size,
             learning_rate=args.lr,
-            device=device,
             amp=args.amp,
-        )
+        ),
+    )
+
+    logging.info(
+        f"""Starting training:
+        Epochs:          {args.epochs}
+        Batch size:      {args.batch_size}
+        Learning rate:   {args.lr}
+        Training size:   {len(ds_train)}
+        Validation size: {len(ds_valid)}
+        Device:          {device.type}
+        Mixed Precision: {args.amp}
+        """
+    )
+
+    try:
+        for epoch in range(1, args.epochs + 1):
+            with tqdm(total=len(ds_train), desc=f"{epoch}/{args.epochs}", unit="img") as pbar:
+
+                # Training round
+                for step, (images, true_masks) in enumerate(train_loader):
+                    assert images.shape[1] == net.n_channels, (
+                        f"Network has been defined with {net.n_channels} input channels, "
+                        f"but loaded images have {images.shape[1]} channels. Please check that "
+                        "the images are loaded correctly."
+                    )
+
+                    images = images.to(device=device)
+                    true_masks = true_masks.unsqueeze(1).to(device=device)
+
+                    with torch.cuda.amp.autocast(enabled=args.amp):
+                        masks_pred = net(images)
+                        train_loss = criterion(masks_pred, true_masks)  # TODO: rajouter le diceloss
+
+                    optimizer.zero_grad(set_to_none=True)
+                    grad_scaler.scale(train_loss).backward()
+                    grad_scaler.step(optimizer)
+                    grad_scaler.update()
+
+                    pbar.update(images.shape[0])
+                    pbar.set_postfix(**{"loss": train_loss.item()})
+
+                    wandb.log(  # log training metrics
+                        {
+                            "train/epoch": epoch + step / epoch,
+                            "train/train_loss": train_loss,
+                        }
+                    )
+
+                # Evaluation round
+                val_loss = evaluate(net, val_loader, device)
+                scheduler.step(val_loss)
+                wandb.log(  # log validation metrics
+                    {
+                        "val/val_loss": val_loss,
+                    }
+                )
+
+            print(f"Train Loss: {train_loss:.3f}, Valid Loss: {val_loss:3f}")
+
+            # save weights when epoch end
+            Path(CHECKPOINT_DIR).mkdir(parents=True, exist_ok=True)
+            torch.save(net.state_dict(), str(CHECKPOINT_DIR / "checkpoint_epoch{}.pth".format(epoch)))
+            logging.info(f"Checkpoint {epoch} saved!")
+
     except KeyboardInterrupt:
         torch.save(net.state_dict(), "INTERRUPTED.pth")
         logging.info("Saved interrupt")
         raise
+
+
+if __name__ == "__main__":
+    main()
