@@ -111,10 +111,11 @@ def main():
     # 1. Create transforms
     tf_train = A.Compose(
         [
-            A.Resize(500, 500),
+            A.Resize(512, 512),
             A.Flip(),
             A.ColorJitter(),
             RandomPaste(5, DIR_SPHERE_IMG, DIR_SPHERE_MASK),
+            A.GaussianBlur(),
             A.ISONoise(),
             A.ToFloat(max_value=255),
             ToTensorV2(),
@@ -122,7 +123,7 @@ def main():
     )
     tf_valid = A.Compose(
         [
-            A.Resize(500, 500),
+            A.Resize(512, 512),
             RandomPaste(5, DIR_SPHERE_IMG, DIR_SPHERE_MASK),
             A.ToFloat(max_value=255),
             ToTensorV2(),
@@ -154,7 +155,7 @@ def main():
             amp=args.amp,
         ),
     )
-    wandb.save(f"{CHECKPOINT_DIR}/*")
+    wandb.watch(net, log_freq=100)
 
     logging.info(
         f"""Starting training:

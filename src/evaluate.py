@@ -20,18 +20,18 @@ def evaluate(net, dataloader, device):
             # forward, predict the mask
             with torch.inference_mode():
                 masks_pred = net(images)
-                masks_pred = (torch.sigmoid(masks_pred) > 0.5).float()
+                masks_pred_bin = (torch.sigmoid(masks_pred) > 0.5).float()
 
                 # compute the Dice score
-                dice_score += dice_coeff(masks_pred, masks_true, reduce_batch_first=False)
+                dice_score += dice_coeff(masks_pred_bin, masks_true, reduce_batch_first=False)
 
             # update progress bar
             pbar.update(images.shape[0])
 
     # save some images to wandb
-    table = wandb.Table(columns=["image", "mask", "prediction"])
-    for img, mask, pred in zip(images.to("cpu"), masks_true.to("cpu"), masks_pred.to("cpu")):
-        table.add_data(wandb.Image(img), wandb.Image(mask), wandb.Image(pred))
+    table = wandb.Table(columns=["id", "image", "mask", "prediction"])
+    for i, (img, mask, pred) in enumerate(zip(images.to("cpu"), masks_true.to("cpu"), masks_pred.to("cpu"))):
+        table.add_data(i, wandb.Image(img), wandb.Image(mask), wandb.Image(pred))
     wandb.log({"predictions_table": table}, commit=False)
 
     net.train()

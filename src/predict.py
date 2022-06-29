@@ -13,32 +13,6 @@ from unet import UNet
 from utils.utils import plot_img_and_mask
 
 
-def predict_img(net, full_img, device, scale_factor=1, out_threshold=0.5):
-    net.eval()
-    img = torch.from_numpy(BasicDataset.preprocess(full_img, scale_factor, is_mask=False))
-    img = img.unsqueeze(0)
-    img = img.to(device=device, dtype=torch.float32)
-
-    with torch.no_grad():
-        output = net(img)
-
-        if net.n_classes > 1:
-            probs = F.softmax(output, dim=1)[0]
-        else:
-            probs = torch.sigmoid(output)[0]
-
-        tf = transforms.Compose(
-            [transforms.ToPILImage(), transforms.Resize((full_img.size[1], full_img.size[0])), transforms.ToTensor()]
-        )
-
-        full_mask = tf(probs.cpu()).squeeze()
-
-    if net.n_classes == 1:
-        return (full_mask > out_threshold).numpy()
-    else:
-        return F.one_hot(full_mask.argmax(dim=0), net.n_classes).permute(2, 0, 1).numpy()
-
-
 def get_args():
     parser = argparse.ArgumentParser(
         description="Predict masks from input images",
@@ -95,6 +69,29 @@ def get_args():
     return parser.parse_args()
 
 
+def predict_img(net, full_img, device, scale_factor=1, out_threshold=0.5):
+    net.eval()
+    img = torch.from_numpy(BasicDataset.preprocess(full_img, scale_factor, is_mask=False))
+    img = img.unsqueeze(0)
+    img = img.to(device=device, dtype=torch.float32)
+
+    with torch.inference_mode():
+        output = net(img)
+
+        probs = torch.sigmoid(output)[0]
+
+        tf = transforms.Compose(
+            [transforms.ToPILImage(), transforms.Resize((full_img.size[1], full_img.size[0])), transforms.ToTensor()]
+        )
+
+        full_mask = tf(probs.cpu()).squeeze()
+
+    if net.n_classes == 1:
+        return (full_mask > out_threshold).numpy()
+    else:
+        return F.one_hot(full_mask.argmax(dim=0), net.n_classes).permute(2, 0, 1).numpy()
+
+
 def get_output_filenames(args):
     def _generate_name(fn):
         split = os.path.splitext(fn)
@@ -127,6 +124,7 @@ if __name__ == "__main__":
     logging.info("Model loaded!")
 
     for i, filename in enumerate(in_files):
+
         logging.info(f"\nPredicting image {filename} ...")
         img = Image.open(filename)
 
