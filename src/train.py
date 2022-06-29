@@ -18,7 +18,7 @@ from utils.paste import RandomPaste
 
 CHECKPOINT_DIR = Path("./checkpoints/")
 DIR_TRAIN_IMG = Path("/home/lilian/data_disk/lfainsin/val2017")
-DIR_VALID_IMG = Path("/home/lilian/data_disk/lfainsin/val2017/")
+DIR_VALID_IMG = Path("/home/lilian/data_disk/lfainsin/smolval2017/")
 DIR_SPHERE_IMG = Path("/home/lilian/data_disk/lfainsin/spheres/Images/")
 DIR_SPHERE_MASK = Path("/home/lilian/data_disk/lfainsin/spheres/Masks/")
 
@@ -88,6 +88,9 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logging.info(f"Using device {device}")
 
+    # enable cudnn benchmarking
+    torch.backends.cudnn.benchmark = True
+
     # 0. Create network
     net = UNet(n_channels=3, n_classes=args.classes)
     logging.info(
@@ -131,7 +134,7 @@ def main():
     ds_valid = SphereDataset(image_dir=DIR_VALID_IMG, transform=tf_valid)
 
     # 3. Create data loaders
-    loader_args = dict(batch_size=args.batch_size, num_workers=5, pin_memory=True)
+    loader_args = dict(batch_size=args.batch_size, num_workers=6, pin_memory=True)
     train_loader = DataLoader(ds_train, shuffle=True, **loader_args)
     val_loader = DataLoader(ds_valid, shuffle=False, drop_last=True, **loader_args)
 
@@ -141,6 +144,7 @@ def main():
     grad_scaler = torch.cuda.amp.GradScaler(enabled=args.amp)
     criterion = nn.BCEWithLogitsLoss()
 
+    # setup wandb
     wandb.init(
         project="U-Net-tmp",
         config=dict(
@@ -150,6 +154,7 @@ def main():
             amp=args.amp,
         ),
     )
+    wandb.save(f"{CHECKPOINT_DIR}/*")
 
     logging.info(
         f"""Starting training:

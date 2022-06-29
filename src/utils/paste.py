@@ -56,6 +56,13 @@ class RandomPaste(A.DualTransform):
 
         return np.asarray(mask.convert("L"))
 
+    @staticmethod
+    def overlap(positions, x1, y1, w, h):
+        for x2, y2 in positions:
+            if x1 + w >= x2 and x1 <= x2 + w and y1 + h >= y2 and y1 <= y2 + h:
+                return True
+        return False
+
     def get_params_dependent_on_targets(self, params):
         # choose a random image inside the image folder
         filename = rd.choice(os.listdir(self.path_paste_img_dir))
@@ -107,14 +114,14 @@ class RandomPaste(A.DualTransform):
 
         # generate some positions
         positions = []
-        while len(positions) <= rd.randint(1, self.nb):
+        NB = rd.randint(1, self.nb)
+        while len(positions) <= NB:
             x = rd.randint(0, target_shape[0] - paste_shape[0])
             y = rd.randint(0, target_shape[1] - paste_shape[1])
 
             # check for overlapping
-            for xo, yo in positions:
-                if (x <= xo + paste_shape[0]) and (y <= yo + paste_shape[1]):
-                    continue
+            if RandomPaste.overlap(positions, x, y, paste_shape[0], paste_shape[1]):
+                continue
 
             positions.append((x, y))
 
