@@ -105,6 +105,9 @@ def main():
         net.load_state_dict(torch.load(args.load, map_location=device))
         logging.info(f"Model loaded from {args.load}")
 
+    # save initial model.pth
+    torch.save(net.state_dict(), "model.pth")
+
     # transfer network to device
     net.to(device=device)
 
@@ -146,7 +149,7 @@ def main():
     criterion = nn.BCEWithLogitsLoss()
 
     # setup wandb
-    wandb.init(
+    run = wandb.init(
         project="U-Net-tmp",
         config=dict(
             epochs=args.epochs,
@@ -156,6 +159,9 @@ def main():
         ),
     )
     wandb.watch(net, log_freq=100)
+    # artifact = wandb.Artifact("model", type="model")
+    # artifact.add_file("model.pth")
+    # run.log_artifact(artifact)
 
     logging.info(
         f"""Starting training:
@@ -222,9 +228,11 @@ def main():
             print(f"Train Loss: {train_loss:.3f}, Valid Score: {val_score:3f}")
 
             # save weights when epoch end
-            Path(CHECKPOINT_DIR).mkdir(parents=True, exist_ok=True)
-            torch.save(net.state_dict(), str(CHECKPOINT_DIR / "checkpoint_epoch{}.pth".format(epoch)))
-            logging.info(f"Checkpoint {epoch} saved!")
+            # torch.save(net.state_dict(), "model.pth")
+            # run.log_artifact(artifact)
+            logging.info(f"model saved!")
+
+        run.finish()
 
     except KeyboardInterrupt:
         torch.save(net.state_dict(), "INTERRUPTED.pth")
