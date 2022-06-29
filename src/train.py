@@ -17,8 +17,8 @@ from unet import UNet
 from utils.paste import RandomPaste
 
 CHECKPOINT_DIR = Path("./checkpoints/")
-DIR_TRAIN_IMG = Path("/home/lilian/data_disk/lfainsin/smoltrain2017")
-DIR_VALID_IMG = Path("/home/lilian/data_disk/lfainsin/smolval2017/")
+DIR_TRAIN_IMG = Path("/home/lilian/data_disk/lfainsin/val2017")
+DIR_VALID_IMG = Path("/home/lilian/data_disk/lfainsin/val2017/")
 DIR_SPHERE_IMG = Path("/home/lilian/data_disk/lfainsin/spheres/Images/")
 DIR_SPHERE_MASK = Path("/home/lilian/data_disk/lfainsin/spheres/Masks/")
 
@@ -182,7 +182,7 @@ def main():
                     # forward
                     with torch.cuda.amp.autocast(enabled=args.amp):
                         pred_masks = net(images)
-                        train_loss = criterion(pred_masks, pred_masks)
+                        train_loss = criterion(pred_masks, true_masks)
 
                     # backward
                     optimizer.zero_grad(set_to_none=True)
