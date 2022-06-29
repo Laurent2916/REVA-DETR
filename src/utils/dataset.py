@@ -19,11 +19,11 @@ class SphereDataset(Dataset):
         img_path = os.path.join(self.image_dir, self.images[index])
         image = np.array(Image.open(img_path).convert("RGB"), dtype=np.uint8)
 
-        mask = np.zeros((image.shape[0], image.shape[1]), dtype=np.float32)
+        mask = np.zeros((image.shape[0], image.shape[1]), dtype=np.uint8)
 
         if self.transform is not None:
             augmentations = self.transform(image=image, mask=mask)
             image = augmentations["image"]
-            mask = augmentations["mask"]
+            mask = augmentations["mask"].float()
 
         return image, mask
