@@ -12,9 +12,9 @@
       "console": "integratedTerminal",
       "args": [
         "--input",
-        "SM.png",
+        "images/SM.png",
         "--output",
-        "test.png",
+        "output.png",
       ],
       "justMyCode": true
     }
