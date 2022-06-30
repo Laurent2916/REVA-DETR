@@ -119,7 +119,7 @@ class RandomPaste(A.DualTransform):
         # generate some positions
         positions = []
         NB = rd.randint(1, self.nb)
-        while len(positions) <= NB:
+        while len(positions) < NB:
             x = rd.randint(0, target_shape[0] - paste_shape[0])
             y = rd.randint(0, target_shape[1] - paste_shape[1])
 
