@@ -34,28 +34,10 @@ def evaluate(net, dataloader, device):
             pbar.update(images.shape[0])
 
     # save some images to wandb
-    overlays = []
-    for img, mask, pred in zip(images.to("cpu"), masks_true.to("cpu"), masks_pred.to("cpu")):
-        mask_img = np.asarray(mask > 0.5, np.uint8).squeeze(0)  # tester des trucs sans le threshold
-        pred_img = np.asarray(pred > 0.5, np.uint8).squeeze(0)
-
-        overlays.append(
-            wandb.Image(
-                img,
-                masks={
-                    "ground_truth": {
-                        "mask_data": mask_img,
-                        "class_labels": class_labels,
-                    },
-                    "predictions": {
-                        "mask_data": pred_img,
-                        "class_labels": class_labels,
-                    },
-                },
-            )
-        )
-
-    wandb.log({"val/images": overlays})
+    table = wandb.Table(columns=["ID", "image", "ground truth", "prediction"])
+    for i, (img, mask, pred) in enumerate(zip(images.to("cpu"), masks_true.to("cpu"), masks_pred.to("cpu"))):
+        table.add_data(i, wandb.Image(img), wandb.Image(mask), wandb.Image(pred))
+    wandb.log({"predictions_table": table})
 
     net.train()
 
