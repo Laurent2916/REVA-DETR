@@ -6,5 +6,7 @@ wandb/
 images/
 
 *.pth
+*.onnx
+
 *.png
 *.jpg
