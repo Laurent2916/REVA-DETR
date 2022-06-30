@@ -1,4 +1,3 @@
-import logging
 import os
 
 import numpy as np
@@ -24,6 +23,10 @@ class SphereDataset(Dataset):
         if self.transform is not None:
             augmentations = self.transform(image=image, mask=mask)
             image = augmentations["image"]
-            mask = augmentations["mask"].float()
+            mask = augmentations["mask"]
+
+        # make sure image and mask are floats
+        image = image.float()
+        mask = mask.float()
 
         return image, mask

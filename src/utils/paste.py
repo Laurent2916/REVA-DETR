@@ -42,6 +42,7 @@ class RandomPaste(A.DualTransform):
         # convert img to Image, needed for `paste` function
         img = Image.fromarray(img)
 
+        # paste spheres
         for pos in positions:
             img.paste(paste_img, pos, paste_mask)
 
@@ -51,8 +52,12 @@ class RandomPaste(A.DualTransform):
         # convert mask to Image, needed for `paste` function
         mask = Image.fromarray(mask)
 
+        # binarize the mask -> {0, 1}
+        paste_mask_bin = paste_mask.point(lambda p: 1 if p > 10 else 0)
+
+        # paste spheres
         for pos in positions:
-            mask.paste(paste_mask, pos, paste_mask)
+            mask.paste(paste_mask, pos, paste_mask_bin)
 
         return np.asarray(mask.convert("L"))
 

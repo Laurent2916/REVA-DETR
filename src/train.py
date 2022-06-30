@@ -8,9 +8,9 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 import wandb
-from evaluate import evaluate
 from src.utils.dataset import SphereDataset
 from unet import UNet
+from utils.dice import dice_coeff
 from utils.paste import RandomPaste
 
 
@@ -22,7 +22,7 @@ def main():
     wandb.init(
         project="U-Net",
         config=dict(
-            DIR_TRAIN_IMG="/home/lilian/data_disk/lfainsin/val2017",
+            DIR_TRAIN_IMG="/home/lilian/data_disk/lfainsin/smolval2017",
             DIR_VALID_IMG="/home/lilian/data_disk/lfainsin/smoltrain2017/",
             DIR_SPHERE_IMG="/home/lilian/data_disk/lfainsin/spheres/Images/",
             DIR_SPHERE_MASK="/home/lilian/data_disk/lfainsin/spheres/Masks/",
@@ -51,7 +51,7 @@ def main():
     # 0. Create network
     net = UNet(n_channels=wandb.config.N_CHANNELS, n_classes=wandb.config.N_CLASSES, features=wandb.config.FEATURES)
     wandb.config.PARAMETERS = sum(p.numel() for p in net.parameters() if p.requires_grad)
-    wandb.watch(net, log_freq=100)
+    wandb.watch(net, log_freq=100)  # TODO: 1/4 epochs
 
     # transfer network to device
     net.to(device=device)
@@ -110,10 +110,6 @@ def main():
     grad_scaler = torch.cuda.amp.GradScaler(enabled=wandb.config.AMP)
     criterion = torch.nn.BCEWithLogitsLoss()
 
-    # accuracy stuff
-    mse = torch.nn.MSELoss()
-    mae = torch.nn.L1Loss()
-
     # save model.pth
     torch.save(net.state_dict(), "checkpoints/model-0.pth")
     artifact = wandb.Artifact("pth", type="model")
@@ -135,6 +131,9 @@ def main():
         {yaml.dump(wandb.config.as_dict())}
         """
     )
+
+    # setup wandb table for saving images
+    table = wandb.Table(columns=["ID", "image", "ground truth", "prediction"])
 
     try:
         for epoch in range(1, wandb.config.EPOCHS + 1):
@@ -164,9 +163,9 @@ def main():
                     grad_scaler.update()
 
                     # compute metrics
-                    accuracy = (true_masks == pred_masks).float().mean()
-                    mse = torch.nn.functional.mse_loss(pred_masks, true_masks)
-                    mae = torch.nn.functional.l1_loss(pred_masks, true_masks)
+                    pred_masks_bin = (torch.sigmoid(pred_masks) > 0.5).float()
+                    accuracy = (true_masks == pred_masks_bin).float().mean()
+                    mae = torch.nn.functional.l1_loss(pred_masks_bin, true_masks)
 
                     # update tqdm progress bar
                     pbar.update(images.shape[0])
@@ -177,22 +176,63 @@ def main():
                         {
                             "train/epoch": epoch - 1 + step / len(train_loader),
                             "train/accuracy": accuracy,
-                            "train/loss": train_loss,
-                            "train/mse": mse,
+                            "train/bce": train_loss,
                             "train/mae": mae,
                         }
                     )
 
                 # Evaluation round
-                val_score = evaluate(net, val_loader, device)
-                scheduler.step(val_score)
+                net.eval()
+                accuracy = 0
+                dice = 0
+                mae = 0
+                with tqdm(val_loader, total=len(ds_valid), desc="val", unit="img", leave=False) as pbar:
+                    for images, masks_true in val_loader:
+
+                        # transfer images to device
+                        images = images.to(device=device)
+                        masks_true = masks_true.unsqueeze(1).to(device=device)
+
+                        # forward
+                        with torch.inference_mode():
+                            masks_pred = net(images)
+
+                        # compute metrics
+                        masks_pred_bin = (torch.sigmoid(masks_pred) > 0.5).float()
+                        accuracy += (true_masks == pred_masks_bin).float().sum()
+                        dice += dice_coeff(masks_pred_bin, masks_true, reduce_batch_first=False)
+                        mae += torch.nn.functional.l1_loss(pred_masks_bin, true_masks, reduction="sum")
+
+                        # update progress bar
+                        pbar.update(images.shape[0])
+
+                accuracy /= len(ds_valid)
+                dice /= len(val_loader)  # TODO: fix dice_coeff to not average
+                mae /= len(ds_valid)
+
+                # save the last validation batch to table
+                for i, (img, mask, pred) in enumerate(
+                    zip(
+                        images.to("cpu"),
+                        masks_true.to("cpu"),
+                        masks_pred.to("cpu"),
+                    )
+                ):
+                    table.add_data(i, wandb.Image(img), wandb.Image(mask), wandb.Image(pred))
 
                 # log validation metrics
                 wandb.log(
                     {
-                        "val/val_score": val_score,
+                        "val/predictions": table,
+                        "val/accuracy": accuracy,
+                        "val/dice": dice,
+                        "val/mae": mae,
                     }
                 )
+
+                # update hyperparameters
+                net.train()
+                scheduler.step(dice)
 
             # save weights when epoch end
             torch.save(net.state_dict(), f"checkpoints/model-{epoch}.pth")
