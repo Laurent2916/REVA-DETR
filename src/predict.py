@@ -38,19 +38,6 @@ def get_args():
     return parser.parse_args()
 
 
-def predict_img(net, img, device):
-    img = img.unsqueeze(0)
-    img = img.to(device=device, dtype=torch.float32)
-
-    net.eval()
-    with torch.inference_mode():
-        output = net(img)
-        # preds = torch.sigmoid(output)[0]
-        # full_mask = output.squeeze(0).cpu()
-
-    return np.asarray(output.squeeze().cpu())
-
-
 if __name__ == "__main__":
     args = get_args()
 
@@ -81,8 +68,17 @@ if __name__ == "__main__":
     img = aug["image"]
 
     logging.info(f"Predicting image {args.input}")
-    mask = predict_img(net=net, img=img, device=device)
+    img = img.unsqueeze(0).to(device=device, dtype=torch.float32)
+
+    net.eval()
+    with torch.inference_mode():
+        mask = net(img)
+        mask = torch.sigmoid(mask)[0]
+        mask = mask.cpu()
+        mask = mask.squeeze()
+        mask = mask > 0.5
+        mask = np.asarray(mask)
 
     logging.info(f"Saving prediction to {args.output}")
-    mask = Image.fromarray(mask, "L")
+    mask = Image.fromarray(mask)
     mask.save(args.output)
