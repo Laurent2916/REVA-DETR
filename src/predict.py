@@ -34,32 +34,27 @@ def get_args():
         metavar="OUTPUT",
         help="Filenames of output images",
     )
-    parser.add_argument(
-        "--threshold",
-        "-t",
-        type=float,
-        default=0.5,
-        help="Minimum probability value to consider a mask pixel white",
-    )
 
     return parser.parse_args()
 
 
-def predict_img(net, img, device, threshold):
+def predict_img(net, img, device):
     img = img.unsqueeze(0)
     img = img.to(device=device, dtype=torch.float32)
 
     net.eval()
     with torch.inference_mode():
         output = net(img)
-        preds = torch.sigmoid(output)[0]
-        full_mask = preds.cpu().squeeze()
+        # preds = torch.sigmoid(output)[0]
+        # full_mask = output.squeeze(0).cpu()
 
-    return np.asarray(full_mask > threshold)
+    return np.asarray(output.squeeze().cpu())
 
 
 if __name__ == "__main__":
     args = get_args()
+
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
     net = UNet(n_channels=3, n_classes=1)
 
@@ -86,8 +81,8 @@ if __name__ == "__main__":
     img = aug["image"]
 
     logging.info(f"Predicting image {args.input}")
-    mask = predict_img(net=net, img=img, threshold=args.threshold, device=device)
+    mask = predict_img(net=net, img=img, device=device)
 
     logging.info(f"Saving prediction to {args.output}")
-    mask = Image.fromarray(mask)
-    mask.write(args.output)
+    mask = Image.fromarray(mask, "L")
+    mask.save(args.output)
