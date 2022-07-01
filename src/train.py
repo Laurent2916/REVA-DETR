@@ -26,8 +26,8 @@ def main():
     wandb.init(
         project="U-Net",
         config=dict(
-            DIR_TRAIN_IMG="/home/lilian/data_disk/lfainsin/val2017",
-            DIR_VALID_IMG="/home/lilian/data_disk/lfainsin/smoltrain2017/",
+            DIR_TRAIN_IMG="/home/lilian/data_disk/lfainsin/train/",
+            DIR_VALID_IMG="/home/lilian/data_disk/lfainsin/val/",
             DIR_SPHERE_IMG="/home/lilian/data_disk/lfainsin/spheres/Images/",
             DIR_SPHERE_MASK="/home/lilian/data_disk/lfainsin/spheres/Masks/",
             FEATURES=[64, 128, 256, 512],
@@ -87,11 +87,10 @@ def main():
     # 2. Create datasets
     ds_train = SphereDataset(image_dir=wandb.config.DIR_TRAIN_IMG, transform=tf_train)
     ds_valid = SphereDataset(image_dir=wandb.config.DIR_VALID_IMG, transform=tf_valid)
-    # ds_train_bg20k = SphereDataset(image_dir="/home/lilian/data_disk/lfainsin/BG-20k/train/", transform=tf_train)
-    # ds_valid_bg20k = SphereDataset(image_dir="/home/lilian/data_disk/lfainsin/BG-20k/testval/", transform=tf_valid)
 
-    # ds_train = torch.utils.data.ChainDataset([ds_train_coco, ds_train_bg20k])
-    # ds_valid = torch.utils.data.ChainDataset([ds_valid_coco, ds_valid_bg20k]) # TODO: modifier la classe SphereDataset pour prendre plusieurs dossiers
+    # 2.5 Create subset, if uncommented
+    ds_train = torch.utils.data.Subset(ds_train, list(range(0, len(ds_train), len(ds_train) // 5000)))
+    ds_valid = torch.utils.data.Subset(ds_valid, list(range(0, len(ds_valid), len(ds_valid) // 100)))
 
     # 3. Create data loaders
     train_loader = DataLoader(

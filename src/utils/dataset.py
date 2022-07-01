@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 import numpy as np
 from PIL import Image
@@ -7,16 +7,14 @@ from torch.utils.data import Dataset
 
 class SphereDataset(Dataset):
     def __init__(self, image_dir, transform=None):
-        self.image_dir = image_dir
+        self.images = list(Path(image_dir).glob("**/*.jpg"))
         self.transform = transform
-        self.images = os.listdir(image_dir)
 
     def __len__(self):
         return len(self.images)
 
     def __getitem__(self, index):
-        img_path = os.path.join(self.image_dir, self.images[index])
-        image = np.array(Image.open(img_path).convert("RGB"), dtype=np.uint8)
+        image = np.array(Image.open(self.images[index]).convert("RGB"), dtype=np.uint8)
 
         mask = np.zeros((image.shape[0], image.shape[1]), dtype=np.uint8)
 
