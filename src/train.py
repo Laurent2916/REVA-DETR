@@ -22,7 +22,7 @@ def main():
     wandb.init(
         project="U-Net",
         config=dict(
-            DIR_TRAIN_IMG="/home/lilian/data_disk/lfainsin/smolval2017",
+            DIR_TRAIN_IMG="/home/lilian/data_disk/lfainsin/val2017",
             DIR_VALID_IMG="/home/lilian/data_disk/lfainsin/smoltrain2017/",
             DIR_SPHERE_IMG="/home/lilian/data_disk/lfainsin/spheres/Images/",
             DIR_SPHERE_MASK="/home/lilian/data_disk/lfainsin/spheres/Masks/",
@@ -31,7 +31,7 @@ def main():
             N_CLASSES=1,
             AMP=True,
             PIN_MEMORY=True,
-            BENCHMARK=False,
+            BENCHMARK=True,
             DEVICE="cuda",
             WORKERS=8,
             EPOCHS=5,
