@@ -1,28 +1,29 @@
 [tool.poetry]
+authors = ["laurent"]
+description = "unet"
 name = "unet"
 version = "0.1.0"
-description = "unet"
-authors = ["laurent"]
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.11"
-torch = "^1.11.0"
-numpy = "^1.23.0"
-scipy = "^1.8.1"
 albumentations = "^1.2.0"
-tqdm = "^4.64.0"
-torchvision = "^0.12.0"
 matplotlib = "^3.5.2"
+numpy = "^1.23.0"
+python = ">=3.8,<3.11"
+pytorch-lightning = "^1.6.4"
+scipy = "^1.8.1"
+torch = "^1.11.0"
+torchvision = "^0.12.0"
+tqdm = "^4.64.0"
 wandb = "^0.12.19"
 
 [tool.poetry.dev-dependencies]
 black = "^22.3.0"
-isort = "^5.10.1"
 ipykernel = "^6.15.0"
+isort = "^5.10.1"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0"]
 
 [tool.black]
 exclude = '''
