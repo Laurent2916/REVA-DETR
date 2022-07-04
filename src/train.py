@@ -174,6 +174,7 @@ if __name__ == "__main__":
                     # forward
                     with torch.cuda.amp.autocast(enabled=wandb.config.AMP):
                         pred_masks = net(images)
+                        train_loss = criterion(pred_masks, true_masks)
 
                     # backward
                     optimizer.zero_grad(set_to_none=True)
@@ -182,7 +183,6 @@ if __name__ == "__main__":
                     grad_scaler.update()
 
                     # compute metrics
-                    train_loss = criterion(pred_masks, true_masks)
                     pred_masks_bin = (torch.sigmoid(pred_masks) > 0.5).float()
                     accuracy = (true_masks == pred_masks_bin).float().mean()
                     dice = dice_coeff(pred_masks_bin, true_masks)
@@ -203,7 +203,7 @@ if __name__ == "__main__":
                         }
                     )
 
-                    if step and (step % 100 == 0 or step == len(train_loader)):
+                    if step and (step % 250 == 0 or step == len(train_loader)):
                         # Evaluation round
                         net.eval()
                         accuracy = 0
