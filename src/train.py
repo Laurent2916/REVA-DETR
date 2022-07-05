@@ -19,7 +19,7 @@ CONFIG = {
     "DIR_TEST_IMG": "/home/lilian/data_disk/lfainsin/test/",
     "DIR_SPHERE_IMG": "/home/lilian/data_disk/lfainsin/spheres/Images/",
     "DIR_SPHERE_MASK": "/home/lilian/data_disk/lfainsin/spheres/Masks/",
-    "FEATURES": [64, 128, 256, 512],
+    "FEATURES": [16, 32, 64, 128],
     "N_CHANNELS": 3,
     "N_CLASSES": 1,
     "AMP": True,
@@ -53,7 +53,13 @@ if __name__ == "__main__":
     pl.seed_everything(69420, workers=True)
 
     # 0. Create network
-    net = UNet(n_channels=CONFIG["N_CHANNELS"], n_classes=CONFIG["N_CLASSES"], features=CONFIG["FEATURES"])
+    net = UNet(
+        n_channels=CONFIG["N_CHANNELS"],
+        n_classes=CONFIG["N_CLASSES"],
+        batch_size=CONFIG["BATCH_SIZE"],
+        learning_rate=CONFIG["LEARNING_RATE"],
+        features=CONFIG["FEATURES"],
+    )
 
     # log gradients and weights regularly
     logger.watch(net, log="all")
@@ -77,7 +83,7 @@ if __name__ == "__main__":
     ds_valid = SphereDataset(image_dir=CONFIG["DIR_TEST_IMG"])
 
     # 2.5. Create subset, if uncommented
-    ds_train = torch.utils.data.Subset(ds_train, list(range(0, len(ds_train), len(ds_train) // 10000)))
+    ds_train = torch.utils.data.Subset(ds_train, list(range(0, len(ds_train), len(ds_train) // 5000)))
     # ds_valid = torch.utils.data.Subset(ds_valid, list(range(0, len(ds_valid), len(ds_valid) // 100)))
     # ds_test = torch.utils.data.Subset(ds_test, list(range(0, len(ds_test), len(ds_test) // 100)))
 
@@ -104,9 +110,12 @@ if __name__ == "__main__":
         accelerator=CONFIG["DEVICE"],
         # precision=16,
         auto_scale_batch_size="binsearch",
+        auto_lr_find=True,
         benchmark=CONFIG["BENCHMARK"],
         val_check_interval=100,
         callbacks=RichProgressBar(),
+        logger=logger,
+        log_every_n_steps=1,
     )
 
     try:
