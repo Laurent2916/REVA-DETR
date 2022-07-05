@@ -26,7 +26,6 @@ class UNet(nn.Module):
         self.outc = OutConv(features[0], n_classes)
 
     def forward(self, x):
-
         skips = []
 
         x = self.inc(x)
