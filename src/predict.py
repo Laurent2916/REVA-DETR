@@ -2,12 +2,11 @@ import argparse
 import logging
 
 import albumentations as A
+import cv2
 import numpy as np
 import torch
 from albumentations.pytorch import ToTensorV2
 from PIL import Image
-
-from unet import UNet
 
 
 def get_args():
@@ -38,47 +37,35 @@ def get_args():
     return parser.parse_args()
 
 
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+
 if __name__ == "__main__":
     args = get_args()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-    net = UNet(n_channels=3, n_classes=1)
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    logging.info(f"Using device {device}")
-
-    logging.info("Transfering model to device")
-    net.to(device=device)
-
-    logging.info(f"Loading model {args.model}")
-    net.load_state_dict(torch.load(args.model, map_location=device))
+    net = cv2.dnn.readNetFromONNX(args.model)
+    logging.info("onnx model loaded")
 
     logging.info(f"Loading image {args.input}")
-    img = Image.open(args.input).convert("RGB")
+    input_img = cv2.imread(args.input, cv2.IMREAD_COLOR)
+    input_img = input_img.astype(np.float32)
+    # input_img = cv2.resize(input_img, (512, 512))
 
-    logging.info(f"Preprocessing image {args.input}")
-    tf = A.Compose(
-        [
-            A.ToFloat(max_value=255),
-            ToTensorV2(),
-        ],
+    logging.info("converting to blob")
+    input_blob = cv2.dnn.blobFromImage(
+        image=input_img,
+        scalefactor=1 / 255,
     )
-    aug = tf(image=np.asarray(img))
-    img = aug["image"]
 
-    logging.info(f"Predicting image {args.input}")
-    img = img.unsqueeze(0).to(device=device, dtype=torch.float32)
-
-    net.eval()
-    with torch.inference_mode():
-        mask = net(img)
-        mask = torch.sigmoid(mask)[0]
-        mask = mask.cpu()
-        mask = mask.squeeze()
-        mask = mask > 0.5
-        mask = np.asarray(mask)
+    net.setInput(input_blob)
+    mask = net.forward()
+    mask = sigmoid(mask)
+    mask = mask > 0.5
+    mask = mask.astype(np.float32)
 
     logging.info(f"Saving prediction to {args.output}")
-    mask = Image.fromarray(mask)
+    mask = Image.fromarray(mask, "L")
     mask.save(args.output)

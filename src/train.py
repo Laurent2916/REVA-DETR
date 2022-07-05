@@ -5,12 +5,13 @@ import torch
 import yaml
 from albumentations.pytorch import ToTensorV2
 from torch.utils.data import DataLoader
+from torchmetrics import Dice
 from tqdm import tqdm
 
 import wandb
 from src.utils.dataset import SphereDataset
 from unet import UNet
-from utils.dice import dice_coeff
+from utils.dice import DiceLoss
 from utils.paste import RandomPaste
 
 class_labels = {
@@ -37,8 +38,8 @@ if __name__ == "__main__":
             PIN_MEMORY=True,
             BENCHMARK=True,
             DEVICE="cuda",
-            WORKERS=8,
-            EPOCHS=5,
+            WORKERS=7,
+            EPOCHS=1001,
             BATCH_SIZE=16,
             LEARNING_RATE=1e-4,
             WEIGHT_DECAY=1e-8,
@@ -92,9 +93,13 @@ if __name__ == "__main__":
     ds_test = SphereDataset(image_dir=wandb.config.DIR_TEST_IMG)
 
     # 2.5. Create subset, if uncommented
-    ds_train = torch.utils.data.Subset(ds_train, list(range(0, len(ds_train), len(ds_train) // 10000)))
-    ds_valid = torch.utils.data.Subset(ds_valid, list(range(0, len(ds_valid), len(ds_valid) // 1000)))
-    ds_test = torch.utils.data.Subset(ds_test, list(range(0, len(ds_test), len(ds_test) // 100)))
+    # ds_train = torch.utils.data.Subset(ds_train, list(range(0, len(ds_train), len(ds_train) // 10000)))
+    # ds_valid = torch.utils.data.Subset(ds_valid, list(range(0, len(ds_valid), len(ds_valid) // 100)))
+    # ds_test = torch.utils.data.Subset(ds_test, list(range(0, len(ds_test), len(ds_test) // 100)))
+
+    ds_train = torch.utils.data.Subset(ds_train, [0])
+    ds_valid = torch.utils.data.Subset(ds_valid, [0])
+    ds_test = torch.utils.data.Subset(ds_test, [0])
 
     # 3. Create data loaders
     train_loader = DataLoader(
@@ -131,18 +136,19 @@ if __name__ == "__main__":
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, "max", patience=2)
     grad_scaler = torch.cuda.amp.GradScaler(enabled=wandb.config.AMP)
     criterion = torch.nn.BCEWithLogitsLoss()
+    dice_loss = DiceLoss()
 
     # save model.onxx
     dummy_input = torch.randn(
         1, wandb.config.N_CHANNELS, wandb.config.IMG_SIZE, wandb.config.IMG_SIZE, requires_grad=True
     ).to(device)
-    torch.onnx.export(net, dummy_input, "checkpoints/model-0.onnx")
+    torch.onnx.export(net, dummy_input, "checkpoints/model.onnx")
     artifact = wandb.Artifact("onnx", type="model")
     artifact.add_file("checkpoints/model-0.onnx")
     wandb.run.log_artifact(artifact)
 
     # log gradients and weights four time per epoch
-    wandb.watch(net, criterion, log_freq=100)
+    wandb.watch(net, log_freq=100)
 
     # print the config
     logging.info(f"wandb config:\n{yaml.dump(wandb.config.as_dict())}")
@@ -176,6 +182,8 @@ if __name__ == "__main__":
                         pred_masks = net(images)
                         train_loss = criterion(pred_masks, true_masks)
 
+                    # compute loss
+
                     # backward
                     optimizer.zero_grad(set_to_none=True)
                     grad_scaler.scale(train_loss).backward()
@@ -185,7 +193,7 @@ if __name__ == "__main__":
                     # compute metrics
                     pred_masks_bin = (torch.sigmoid(pred_masks) > 0.5).float()
                     accuracy = (true_masks == pred_masks_bin).float().mean()
-                    dice = dice_coeff(pred_masks_bin, true_masks)
+                    dice = dice_loss.coeff(pred_masks, true_masks)
                     mae = torch.nn.functional.l1_loss(pred_masks_bin, true_masks)
 
                     # update tqdm progress bar
@@ -197,13 +205,13 @@ if __name__ == "__main__":
                         {
                             "epoch": epoch - 1 + step / len(train_loader),
                             "train/accuracy": accuracy,
-                            "train/bce": train_loss,
+                            "train/loss": train_loss,
                             "train/dice": dice,
                             "train/mae": mae,
                         }
                     )
 
-                    if step and (step % 250 == 0 or step == len(train_loader)):
+                    if step and (step % 100 == 0 or step == len(train_loader)):
                         # Evaluation round
                         net.eval()
                         accuracy = 0
@@ -223,10 +231,10 @@ if __name__ == "__main__":
 
                                 # compute metrics
                                 val_loss += criterion(masks_pred, masks_true)
+                                dice += dice_loss.coeff(pred_masks, true_masks)
                                 masks_pred_bin = (torch.sigmoid(masks_pred) > 0.5).float()
                                 mae += torch.nn.functional.l1_loss(masks_pred_bin, masks_true)
                                 accuracy += (masks_true == masks_pred_bin).float().mean()
-                                dice += dice_coeff(masks_pred_bin, masks_true)
 
                                 # update progress bar
                                 pbar2.update(images.shape[0])
@@ -267,7 +275,7 @@ if __name__ == "__main__":
                                 "val/predictions": table,
                                 "train/learning_rate": optimizer.state_dict()["param_groups"][0]["lr"],
                                 "val/accuracy": accuracy,
-                                "val/bce": val_loss,
+                                "val/loss": val_loss,
                                 "val/dice": dice,
                                 "val/mae": mae,
                             },
@@ -276,7 +284,7 @@ if __name__ == "__main__":
 
                         # update hyperparameters
                         net.train()
-                        scheduler.step(dice)
+                        scheduler.step(train_loss)
 
                         # export model to onnx format when validation ends
                         dummy_input = torch.randn(1, 3, 512, 512, requires_grad=True).to(device)
@@ -304,10 +312,10 @@ if __name__ == "__main__":
 
                                 # compute metrics
                                 val_loss += criterion(masks_pred, masks_true)
+                                dice += dice_loss.coeff(pred_masks, true_masks)
                                 masks_pred_bin = (torch.sigmoid(masks_pred) > 0.5).float()
                                 mae += torch.nn.functional.l1_loss(masks_pred_bin, masks_true)
                                 accuracy += (masks_true == masks_pred_bin).float().mean()
-                                dice += dice_coeff(masks_pred_bin, masks_true)
 
                                 # update progress bar
                                 pbar3.update(images.shape[0])
@@ -347,7 +355,7 @@ if __name__ == "__main__":
                             {
                                 "test/predictions": table,
                                 "test/accuracy": accuracy,
-                                "test/bce": val_loss,
+                                "test/loss": val_loss,
                                 "test/dice": dice,
                                 "test/mae": mae,
                             },

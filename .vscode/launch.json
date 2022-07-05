@@ -14,7 +14,9 @@
         "--input",
         "images/SM.png",
         "--output",
-        "output.png",
+        "output_onnx.png",
+        "--model",
+        "good.onnx",
       ],
       "justMyCode": true
     }
