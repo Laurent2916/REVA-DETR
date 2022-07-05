@@ -2,8 +2,9 @@ import argparse
 import logging
 
 import albumentations as A
-import cv2
 import numpy as np
+import onnx
+import onnxruntime
 import torch
 from albumentations.pytorch import ToTensorV2
 from PIL import Image
@@ -46,26 +47,35 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-    net = cv2.dnn.readNetFromONNX(args.model)
-    logging.info("onnx model loaded")
+    onnx_model = onnx.load(args.model)
+    onnx.checker.check_model(onnx_model)
 
-    logging.info(f"Loading image {args.input}")
-    input_img = cv2.imread(args.input, cv2.IMREAD_COLOR)
-    input_img = input_img.astype(np.float32)
-    # input_img = cv2.resize(input_img, (512, 512))
+    ort_session = onnxruntime.InferenceSession(args.model)
 
-    logging.info("converting to blob")
-    input_blob = cv2.dnn.blobFromImage(
-        image=input_img,
-        scalefactor=1 / 255,
+    def to_numpy(tensor):
+        return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()
+
+    img = Image.open(args.input).convert("RGB")
+
+    logging.info(f"Preprocessing image {args.input}")
+    tf = A.Compose(
+        [
+            A.ToFloat(max_value=255),
+            ToTensorV2(),
+        ],
     )
+    aug = tf(image=np.asarray(img))
+    img = aug["image"]
 
-    net.setInput(input_blob)
-    mask = net.forward()
-    mask = sigmoid(mask)
-    mask = mask > 0.5
-    mask = mask.astype(np.float32)
+    logging.info(f"Predicting image {args.input}")
+    img = img.unsqueeze(0)
 
-    logging.info(f"Saving prediction to {args.output}")
-    mask = Image.fromarray(mask, "L")
-    mask.save(args.output)
+    # compute ONNX Runtime output prediction
+    ort_inputs = {ort_session.get_inputs()[0].name: to_numpy(img)}
+    ort_outs = ort_session.run(None, ort_inputs)
+
+    img_out_y = ort_outs[0]
+
+    img_out_y = Image.fromarray(np.uint8((img_out_y[0] * 255.0).clip(0, 255)[0]), mode="L")
+
+    img_out_y.save(args.output)

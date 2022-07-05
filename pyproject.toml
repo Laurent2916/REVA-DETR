@@ -15,6 +15,8 @@ torch = "^1.11.0"
 torchvision = "^0.12.0"
 tqdm = "^4.64.0"
 wandb = "^0.12.19"
+onnx = "^1.12.0"
+onnxruntime = "^1.11.1"
 
 [tool.poetry.dev-dependencies]
 black = "^22.3.0"

@@ -12,7 +12,7 @@
       "console": "integratedTerminal",
       "args": [
         "--input",
-        "images/SM.png",
+        "images/test.png",
         "--output",
         "output_onnx.png",
         "--model",
