@@ -4,6 +4,7 @@ __pycache__/
 
 wandb/
 images/
+lightning_logs/
 
 checkpoints/
 *.pth
