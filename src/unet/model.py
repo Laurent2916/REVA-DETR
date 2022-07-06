@@ -1,5 +1,7 @@
 """ Full assembly of the parts to form the complete network """
 
+import itertools
+
 import pytorch_lightning as pl
 
 import wandb
@@ -57,37 +59,6 @@ class UNet(pl.LightningModule):
 
         return x
 
-    def save_to_table(self, images, masks_true, masks_pred, masks_pred_bin, log_key):
-        table = wandb.Table(columns=["ID", "image", "ground truth", "prediction"])
-
-        for i, (img, mask, pred, pred_bin) in enumerate(
-            zip(
-                images.cpu(),
-                masks_true.cpu(),
-                masks_pred.cpu(),
-                masks_pred_bin.cpu().squeeze(1).int().numpy(),
-            )
-        ):
-            table.add_data(
-                i,
-                wandb.Image(img),
-                wandb.Image(mask),
-                wandb.Image(
-                    pred,
-                    masks={
-                        "predictions": {
-                            "mask_data": pred_bin,
-                            "class_labels": class_labels,
-                        },
-                    },
-                ),
-            )
-
-        wandb.log(
-            {log_key: table},
-            commit=False,
-        )  # replace by self.log
-
     def training_step(self, batch, batch_idx):
         # unpacking
         images, masks_true = batch
@@ -138,24 +109,59 @@ class UNet(pl.LightningModule):
         accuracy = (masks_true == masks_pred_bin).float().mean()
         dice = dice_coeff(masks_pred_bin, masks_true)
 
-        if batch_idx == 0:
-            self.save_to_table(images, masks_true, masks_pred, masks_pred_bin, "val/predictions")
+        if batch_idx < 6:
+            rows = []
+            for i, (img, mask, pred, pred_bin) in enumerate(
+                zip(
+                    images.cpu(),
+                    masks_true.cpu(),
+                    masks_pred.cpu(),
+                    masks_pred_bin.cpu().squeeze(1).int().numpy(),
+                )
+            ):
+                rows.append(
+                    [
+                        i,
+                        wandb.Image(img),
+                        wandb.Image(mask),
+                        wandb.Image(
+                            pred,
+                            masks={
+                                "predictions": {
+                                    "mask_data": pred_bin,
+                                    "class_labels": class_labels,
+                                },
+                            },
+                        ),
+                    ]
+                )
 
         return dict(
             loss=bce,
             dice=dice,
             accuracy=accuracy,
             mae=mae,
+            table_rows=rows,
         )
 
     def validation_epoch_end(self, validation_outputs):
-        # unpacking
+        # matrics unpacking
         accuracy = torch.stack([d["accuracy"] for d in validation_outputs]).mean()
         loss = torch.stack([d["loss"] for d in validation_outputs]).mean()
         dice = torch.stack([d["dice"] for d in validation_outputs]).mean()
         mae = torch.stack([d["mae"] for d in validation_outputs]).mean()
 
+        # table unpacking
+        columns = ["ID", "image", "ground truth", "prediction"]
+        rowss = [d["table_rows"] for d in validation_outputs]
+        rows = list(itertools.chain.from_iterable(rowss))
+
         # logging
+        self.logger.log_table(
+            key="val/predictions",
+            columns=columns,
+            data=rows,
+        )
         self.log_dict(
             {
                 "val/accuracy": accuracy,
