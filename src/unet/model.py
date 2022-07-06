@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 
 import wandb
 from src.utils.dataset import SphereDataset
-from utils.dice import dice_coeff
+from utils.dice import dice_loss
 from utils.paste import RandomPaste
 
 from .blocks import *
@@ -111,28 +111,29 @@ class UNet(pl.LightningModule):
         # forward pass
         masks_pred = self(images)
 
-        # compute loss
+        # compute metrics
         bce = F.binary_cross_entropy_with_logits(masks_pred, masks_true)
+        dice = dice_loss(masks_pred, masks_true)
 
-        # compute other metrics
         masks_pred_bin = (torch.sigmoid(masks_pred) > 0.5).float()
+        dice_bin = dice_loss(masks_pred_bin, masks_true, logits=False)
         mae = torch.nn.functional.l1_loss(masks_pred_bin, masks_true)
         accuracy = (masks_true == masks_pred_bin).float().mean()
-        dice = dice_coeff(masks_pred_bin, masks_true)
 
         self.log_dict(
             {
                 "train/accuracy": accuracy,
-                "train/bce": bce,
                 "train/dice": dice,
+                "train/dice_bin": dice_bin,
+                "train/bce": bce,
                 "train/mae": mae,
             },
         )
 
         return dict(
-            loss=bce,
-            dice=dice,
             accuracy=accuracy,
+            loss=dice,
+            bce=bce,
             mae=mae,
         )
 
@@ -144,17 +145,17 @@ class UNet(pl.LightningModule):
         # forward pass
         masks_pred = self(images)
 
-        # compute loss
+        # compute metrics
         bce = F.binary_cross_entropy_with_logits(masks_pred, masks_true)
+        dice = dice_loss(masks_pred, masks_true)
 
-        # compute other metrics
         masks_pred_bin = (torch.sigmoid(masks_pred) > 0.5).float()
+        dice_bin = dice_loss(masks_pred_bin, masks_true, logits=False)
         mae = torch.nn.functional.l1_loss(masks_pred_bin, masks_true)
         accuracy = (masks_true == masks_pred_bin).float().mean()
-        dice = dice_coeff(masks_pred_bin, masks_true)
 
         rows = []
-        if batch_idx < 6:
+        if batch_idx % 50 == 0:
             for i, (img, mask, pred, pred_bin) in enumerate(
                 zip(
                     images.cpu(),
@@ -181,9 +182,10 @@ class UNet(pl.LightningModule):
                 )
 
         return dict(
-            loss=bce,
-            dice=dice,
             accuracy=accuracy,
+            loss=dice,
+            dice_bin=dice_bin,
+            bce=bce,
             mae=mae,
             table_rows=rows,
         )
@@ -191,8 +193,9 @@ class UNet(pl.LightningModule):
     def validation_epoch_end(self, validation_outputs):
         # matrics unpacking
         accuracy = torch.stack([d["accuracy"] for d in validation_outputs]).mean()
+        dice_bin = torch.stack([d["dice_bin"] for d in validation_outputs]).mean()
         loss = torch.stack([d["loss"] for d in validation_outputs]).mean()
-        dice = torch.stack([d["dice"] for d in validation_outputs]).mean()
+        bce = torch.stack([d["bce"] for d in validation_outputs]).mean()
         mae = torch.stack([d["mae"] for d in validation_outputs]).mean()
 
         # table unpacking
@@ -201,7 +204,7 @@ class UNet(pl.LightningModule):
         rows = list(itertools.chain.from_iterable(rowss))
 
         # logging
-        try:
+        try:  # required by autofinding, logger replaced by dummy
             self.logger.log_table(
                 key="val/predictions",
                 columns=columns,
@@ -209,11 +212,13 @@ class UNet(pl.LightningModule):
             )
         except:
             pass
+
         self.log_dict(
             {
                 "val/accuracy": accuracy,
-                "val/bce": loss,
-                "val/dice": dice,
+                "val/dice": loss,
+                "val/dice_bin": dice_bin,
+                "val/bce": bce,
                 "val/mae": mae,
             }
         )
@@ -230,48 +235,6 @@ class UNet(pl.LightningModule):
         artifact = wandb.Artifact("onnx", type="model")
         artifact.add_file(f"checkpoints/model.onnx")
         wandb.run.log_artifact(artifact)
-
-    # def test_step(self, batch, batch_idx):
-    #     # unpacking
-    #     images, masks_true = batch
-    #     masks_true = masks_true.unsqueeze(1)
-    #     masks_pred = self(images)
-    #     masks_pred_bin = (torch.sigmoid(masks_pred) > 0.5).float()
-
-    #     # compute metrics
-    #     loss = F.cross_entropy(masks_pred, masks_true)
-    #     mae = torch.nn.functional.l1_loss(masks_pred_bin, masks_true)
-    #     accuracy = (masks_true == masks_pred_bin).float().mean()
-    #     dice = dice_coeff(masks_pred_bin, masks_true)
-
-    #     if batch_idx == 0:
-    #         self.save_to_table(images, masks_true, masks_pred, masks_pred_bin, "test/predictions")
-
-    #     return loss, dice, accuracy, mae
-
-    # def test_step_end(self, test_outputs):
-    #     # unpacking
-    #     list_loss, list_dice, list_accuracy, list_mae = test_outputs
-
-    #     # averaging
-    #     loss = np.mean(list_loss)
-    #     dice = np.mean(list_dice)
-    #     accuracy = np.mean(list_accuracy)
-    #     mae = np.mean(list_mae)
-
-    #     # # get learning rate
-    #     # optimizer = self.optimizers[0]
-    #     # learning_rate = optimizer.state_dict()["param_groups"][0]["lr"]
-
-    #     wandb.log(
-    #         {
-    #             # "train/learning_rate": learning_rate,
-    #             "test/accuracy": accuracy,
-    #             "test/bce": loss,
-    #             "test/dice": dice,
-    #             "test/mae": mae,
-    #         }
-    #     )
 
     def configure_optimizers(self):
         optimizer = torch.optim.RMSprop(

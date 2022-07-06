@@ -93,6 +93,18 @@ class RandomPaste(A.DualTransform):
         target_shape = np.array(target_img.shape[:2], dtype=np.uint)
         paste_shape = np.array(paste_img.size, dtype=np.uint)
 
+        # change paste_img's brightness randomly
+        filter = ImageEnhance.Brightness(paste_img)
+        paste_img = filter.enhance(rd.uniform(0.5, 1.5))
+
+        # change paste_img's contrast randomly
+        filter = ImageEnhance.Contrast(paste_img)
+        paste_img = filter.enhance(rd.uniform(0.5, 1.5))
+
+        # change paste_img's sharpness randomly
+        filter = ImageEnhance.Sharpness(paste_img)
+        paste_img = filter.enhance(rd.uniform(0.5, 1.5))
+
         # compute the minimum scaling to fit inside target image
         min_scale = np.min(target_shape / paste_shape)
 
@@ -116,10 +128,6 @@ class RandomPaste(A.DualTransform):
 
         # update paste_shape after scaling
         paste_shape = np.array(paste_img.size, dtype=np.uint)
-
-        # change brightness randomly
-        filter = ImageEnhance.Brightness(paste_img)
-        paste_img = filter.enhance(rd.uniform(0.5, 1.5))
 
         # generate some positions
         positions = []

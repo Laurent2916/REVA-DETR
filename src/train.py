@@ -23,7 +23,7 @@ CONFIG = {
     "BENCHMARK": True,
     "DEVICE": "gpu",
     "WORKERS": 8,
-    "EPOCHS": 5,
+    "EPOCHS": 10,
     "BATCH_SIZE": 16,
     "LEARNING_RATE": 1e-4,
     "WEIGHT_DECAY": 1e-8,
