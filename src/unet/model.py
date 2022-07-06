@@ -2,10 +2,15 @@
 
 import itertools
 
+import albumentations as A
 import pytorch_lightning as pl
+from albumentations.pytorch import ToTensorV2
+from torch.utils.data import DataLoader
 
 import wandb
+from src.utils.dataset import SphereDataset
 from utils.dice import dice_coeff
+from utils.paste import RandomPaste
 
 from .blocks import *
 
@@ -23,6 +28,9 @@ class UNet(pl.LightningModule):
         self.n_classes = n_classes
         self.learning_rate = learning_rate
         self.batch_size = batch_size
+
+        # log hyperparameters
+        self.save_hyperparameters()
 
         # Network
         self.inc = DoubleConv(n_channels, features[0])
@@ -58,6 +66,42 @@ class UNet(pl.LightningModule):
         x = self.outc(x)
 
         return x
+
+    def train_dataloader(self):
+        tf_train = A.Compose(
+            [
+                A.Resize(wandb.config.IMG_SIZE, wandb.config.IMG_SIZE),
+                A.Flip(),
+                A.ColorJitter(),
+                RandomPaste(wandb.config.SPHERES, wandb.config.DIR_SPHERE_IMG, wandb.config.DIR_SPHERE_MASK),
+                A.GaussianBlur(),
+                A.ISONoise(),
+                A.ToFloat(max_value=255),
+                ToTensorV2(),
+            ],
+        )
+
+        ds_train = SphereDataset(image_dir=wandb.config.DIR_TRAIN_IMG, transform=tf_train)
+        ds_train = torch.utils.data.Subset(ds_train, list(range(0, len(ds_train), len(ds_train) // 5000)))
+
+        return DataLoader(
+            ds_train,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=wandb.config.WORKERS,
+            pin_memory=wandb.config.PIN_MEMORY,
+        )
+
+    def val_dataloader(self):
+        ds_valid = SphereDataset(image_dir=wandb.config.DIR_TEST_IMG)
+
+        return DataLoader(
+            ds_valid,
+            shuffle=False,
+            batch_size=1,
+            num_workers=wandb.config.WORKERS,
+            pin_memory=wandb.config.PIN_MEMORY,
+        )
 
     def training_step(self, batch, batch_idx):
         # unpacking
@@ -109,8 +153,8 @@ class UNet(pl.LightningModule):
         accuracy = (masks_true == masks_pred_bin).float().mean()
         dice = dice_coeff(masks_pred_bin, masks_true)
 
+        rows = []
         if batch_idx < 6:
-            rows = []
             for i, (img, mask, pred, pred_bin) in enumerate(
                 zip(
                     images.cpu(),
@@ -157,11 +201,14 @@ class UNet(pl.LightningModule):
         rows = list(itertools.chain.from_iterable(rowss))
 
         # logging
-        self.logger.log_table(
-            key="val/predictions",
-            columns=columns,
-            data=rows,
-        )
+        try:
+            self.logger.log_table(
+                key="val/predictions",
+                columns=columns,
+                data=rows,
+            )
+        except:
+            pass
         self.log_dict(
             {
                 "val/accuracy": accuracy,
@@ -229,7 +276,7 @@ class UNet(pl.LightningModule):
     def configure_optimizers(self):
         optimizer = torch.optim.RMSprop(
             self.parameters(),
-            lr=wandb.config.LEARNING_RATE,
+            lr=self.learning_rate,
             weight_decay=wandb.config.WEIGHT_DECAY,
             momentum=wandb.config.MOMENTUM,
         )

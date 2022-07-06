@@ -9,6 +9,7 @@ lightning_logs/
 checkpoints/
 *.pth
 *.onnx
+*.ckpt
 
 *.png
 *.jpg
