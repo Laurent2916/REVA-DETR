@@ -1,4 +1,3 @@
-import os
 import random as rd
 from pathlib import Path
 
@@ -75,20 +74,10 @@ class RandomPaste(A.DualTransform):
         mask_path = img_path.parent.joinpath("MASK.PNG")
 
         # load the "paste" image
-        paste_img = Image.open(
-            os.path.join(
-                self.path_paste_img_dir,
-                img_path,
-            )
-        ).convert("RGBA")
+        paste_img = Image.open(img_path).convert("RGBA")
 
         # load its respective mask
-        paste_mask = Image.open(
-            os.path.join(
-                self.path_paste_mask_dir,
-                mask_path,
-            )
-        ).convert("LA")
+        paste_mask = Image.open(mask_path).convert("LA")
 
         # load the target image
         target_img = params["image"]
@@ -151,6 +140,3 @@ class RandomPaste(A.DualTransform):
         )
 
         return params
-
-    def get_transform_init_args_names(self):
-        return "scale_range", "path_paste_img_dir", "path_paste_mask_dir"

@@ -73,7 +73,7 @@ class UNet(pl.LightningModule):
                 A.Resize(wandb.config.IMG_SIZE, wandb.config.IMG_SIZE),
                 A.Flip(),
                 A.ColorJitter(),
-                RandomPaste(wandb.config.SPHERES, wandb.config.DIR_SPHERE_IMG, wandb.config.DIR_SPHERE_MASK),
+                RandomPaste(wandb.config.SPHERES, wandb.config.DIR_SPHERE),
                 A.GaussianBlur(),
                 A.ISONoise(),
                 A.ToFloat(max_value=255),
