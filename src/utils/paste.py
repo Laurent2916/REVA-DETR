@@ -1,5 +1,6 @@
 import os
 import random as rd
+from pathlib import Path
 
 import albumentations as A
 import numpy as np
@@ -22,15 +23,15 @@ class RandomPaste(A.DualTransform):
     def __init__(
         self,
         nb,
-        path_paste_img_dir,
-        path_paste_mask_dir,
+        image_dir,
         scale_range=(0.1, 0.2),
         always_apply=True,
         p=1.0,
     ):
         super().__init__(always_apply, p)
-        self.path_paste_img_dir = path_paste_img_dir
-        self.path_paste_mask_dir = path_paste_mask_dir
+        self.images = []
+        self.images.extend(list(Path(image_dir).glob("**/*.jpg")))
+        self.images.extend(list(Path(image_dir).glob("**/*.png")))
         self.scale_range = scale_range
         self.nb = nb
 
@@ -69,14 +70,15 @@ class RandomPaste(A.DualTransform):
         return False
 
     def get_params_dependent_on_targets(self, params):
-        # choose a random image inside the image folder
-        filename = rd.choice(os.listdir(self.path_paste_img_dir))
+        # choose a random image and its corresponding mask
+        img_path = rd.choice(self.images)
+        mask_path = img_path.parent.joinpath("MASK.PNG")
 
         # load the "paste" image
         paste_img = Image.open(
             os.path.join(
                 self.path_paste_img_dir,
-                filename,
+                img_path,
             )
         ).convert("RGBA")
 
@@ -84,25 +86,23 @@ class RandomPaste(A.DualTransform):
         paste_mask = Image.open(
             os.path.join(
                 self.path_paste_mask_dir,
-                filename,
+                mask_path,
             )
         ).convert("LA")
 
         # load the target image
         target_img = params["image"]
+
+        # compute shapes, for easier computations
         target_shape = np.array(target_img.shape[:2], dtype=np.uint)
         paste_shape = np.array(paste_img.size, dtype=np.uint)
-
-        # change paste_img's brightness randomly
-        filter = ImageEnhance.Brightness(paste_img)
-        paste_img = filter.enhance(rd.uniform(0.5, 1.5))
 
         # change paste_img's contrast randomly
         filter = ImageEnhance.Contrast(paste_img)
         paste_img = filter.enhance(rd.uniform(0.5, 1.5))
 
-        # change paste_img's sharpness randomly
-        filter = ImageEnhance.Sharpness(paste_img)
+        # change paste_img's brightness randomly
+        filter = ImageEnhance.Brightness(paste_img)
         paste_img = filter.enhance(rd.uniform(0.5, 1.5))
 
         # compute the minimum scaling to fit inside target image

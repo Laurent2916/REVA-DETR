@@ -82,7 +82,7 @@ class UNet(pl.LightningModule):
         )
 
         ds_train = SphereDataset(image_dir=wandb.config.DIR_TRAIN_IMG, transform=tf_train)
-        ds_train = torch.utils.data.Subset(ds_train, list(range(0, len(ds_train), len(ds_train) // 5000)))
+        # ds_train = torch.utils.data.Subset(ds_train, list(range(0, len(ds_train), len(ds_train) // 10000)))
 
         return DataLoader(
             ds_train,
@@ -178,6 +178,8 @@ class UNet(pl.LightningModule):
                                 },
                             },
                         ),
+                        dice,
+                        dice_bin,
                     ]
                 )
 
@@ -199,7 +201,7 @@ class UNet(pl.LightningModule):
         mae = torch.stack([d["mae"] for d in validation_outputs]).mean()
 
         # table unpacking
-        columns = ["ID", "image", "ground truth", "prediction"]
+        columns = ["ID", "image", "ground truth", "prediction", "dice", "dice_bin"]
         rowss = [d["table_rows"] for d in validation_outputs]
         rows = list(itertools.chain.from_iterable(rowss))
 
