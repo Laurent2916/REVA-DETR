@@ -4,10 +4,12 @@ __pycache__/
 
 wandb/
 images/
+lightning_logs/
 
 checkpoints/
 *.pth
 *.onnx
+*.ckpt
 
 *.png
 *.jpg
