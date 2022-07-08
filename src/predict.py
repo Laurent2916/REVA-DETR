@@ -3,11 +3,11 @@ import logging
 
 import albumentations as A
 import numpy as np
+import onnx
+import onnxruntime
 import torch
 from albumentations.pytorch import ToTensorV2
 from PIL import Image
-
-from unet import UNet
 
 
 def get_args():
@@ -38,23 +38,23 @@ def get_args():
     return parser.parse_args()
 
 
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+
 if __name__ == "__main__":
     args = get_args()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-    net = UNet(n_channels=3, n_classes=1)
+    onnx_model = onnx.load(args.model)
+    onnx.checker.check_model(onnx_model)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    logging.info(f"Using device {device}")
+    ort_session = onnxruntime.InferenceSession(args.model)
 
-    logging.info("Transfering model to device")
-    net.to(device=device)
+    def to_numpy(tensor):
+        return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()
 
-    logging.info(f"Loading model {args.model}")
-    net.load_state_dict(torch.load(args.model, map_location=device))
-
-    logging.info(f"Loading image {args.input}")
     img = Image.open(args.input).convert("RGB")
 
     logging.info(f"Preprocessing image {args.input}")
@@ -68,17 +68,14 @@ if __name__ == "__main__":
     img = aug["image"]
 
     logging.info(f"Predicting image {args.input}")
-    img = img.unsqueeze(0).to(device=device, dtype=torch.float32)
+    img = img.unsqueeze(0)
 
-    net.eval()
-    with torch.inference_mode():
-        mask = net(img)
-        mask = torch.sigmoid(mask)[0]
-        mask = mask.cpu()
-        mask = mask.squeeze()
-        mask = mask > 0.5
-        mask = np.asarray(mask)
+    # compute ONNX Runtime output prediction
+    ort_inputs = {ort_session.get_inputs()[0].name: to_numpy(img)}
+    ort_outs = ort_session.run(None, ort_inputs)
 
-    logging.info(f"Saving prediction to {args.output}")
-    mask = Image.fromarray(mask)
-    mask.save(args.output)
+    img_out_y = ort_outs[0]
+
+    img_out_y = Image.fromarray(np.uint8((img_out_y[0] * 255.0).clip(0, 255)[0]), mode="L")
+
+    img_out_y.save(args.output)
