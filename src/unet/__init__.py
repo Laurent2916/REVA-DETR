@@ -1,1 +1,1 @@
-from .model import UNet
+from .module import UNetModule

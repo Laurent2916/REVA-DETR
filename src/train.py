@@ -1,7 +1,6 @@
 import logging
 
 import pytorch_lightning as pl
-import torch
 from pytorch_lightning.callbacks import RichProgressBar
 from pytorch_lightning.loggers import WandbLogger
 
@@ -57,13 +56,17 @@ if __name__ == "__main__":
     # log gradients and weights regularly
     logger.watch(net, log="all")
 
+    # create checkpoint callback
+    checkpoint_callback = pl.ModelCheckpoint(
+        dirpath="checkpoints",
+        monitor="val/dice",
+    )
+
     # Create the trainer
     trainer = pl.Trainer(
         max_epochs=CONFIG["EPOCHS"],
         accelerator=CONFIG["DEVICE"],
         # precision=16,
-        # auto_scale_batch_size="binsearch",
-        # auto_lr_find=True,
         benchmark=CONFIG["BENCHMARK"],
         val_check_interval=100,
         callbacks=RichProgressBar(),
@@ -71,12 +74,7 @@ if __name__ == "__main__":
         log_every_n_steps=1,
     )
 
-    try:
-        trainer.tune(net)
-        trainer.fit(model=net)
-    except KeyboardInterrupt:
-        torch.save(net.state_dict(), "INTERRUPTED.pth")
-        raise
+    trainer.fit(model=net)
 
     # stop wandb
     wandb.run.finish()
