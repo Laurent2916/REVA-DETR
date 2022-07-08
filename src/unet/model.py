@@ -93,7 +93,7 @@ class UNet(pl.LightningModule):
         )
 
     def val_dataloader(self):
-        ds_valid = SphereDataset(image_dir=wandb.config.DIR_TEST_IMG)
+        ds_valid = SphereDataset(image_dir=wandb.config.DIR_VALID_IMG)
 
         return DataLoader(
             ds_valid,

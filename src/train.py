@@ -10,9 +10,8 @@ from unet import UNet
 
 CONFIG = {
     "DIR_TRAIN_IMG": "/home/lilian/data_disk/lfainsin/train/",
-    "DIR_VALID_IMG": "/home/lilian/data_disk/lfainsin/val/",
-    "DIR_TEST_IMG": "/home/lilian/data_disk/lfainsin/test/",
-    "DIR_SPHERE": "/home/lilian/data_disk/lfainsin/realspheres/",
+    "DIR_VALID_IMG": "//home/lilian/data_disk/lfainsin/test_split/",
+    "DIR_SPHERE": "/home/lilian/data_disk/lfainsin/spheres+real_split/",
     "FEATURES": [8, 16, 32, 64],
     "N_CHANNELS": 3,
     "N_CLASSES": 1,
