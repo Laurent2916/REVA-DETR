@@ -130,6 +130,46 @@ class UNet(pl.LightningModule):
             },
         )
 
+        if batch_idx == 22000:
+            rows = []
+            columns = ["ID", "image", "ground truth", "prediction", "dice", "dice_bin"]
+            for i, (img, mask, pred, pred_bin) in enumerate(
+                zip(
+                    images.cpu(),
+                    masks_true.cpu(),
+                    masks_pred.cpu(),
+                    masks_pred_bin.cpu().squeeze(1).int().numpy(),
+                )
+            ):
+                rows.append(
+                    [
+                        i,
+                        wandb.Image(img),
+                        wandb.Image(mask),
+                        wandb.Image(
+                            pred,
+                            masks={
+                                "predictions": {
+                                    "mask_data": pred_bin,
+                                    "class_labels": class_labels,
+                                },
+                            },
+                        ),
+                        dice,
+                        dice_bin,
+                    ]
+                )
+
+            # logging
+            try:  # required by autofinding, logger replaced by dummy
+                self.logger.log_table(
+                    key="train/predictions",
+                    columns=columns,
+                    data=rows,
+                )
+            except:
+                pass
+
         return dict(
             accuracy=accuracy,
             loss=dice,
@@ -155,7 +195,7 @@ class UNet(pl.LightningModule):
         accuracy = (masks_true == masks_pred_bin).float().mean()
 
         rows = []
-        if batch_idx % 50 == 0:
+        if batch_idx % 50 == 0 or dice < 0.1:
             for i, (img, mask, pred, pred_bin) in enumerate(
                 zip(
                     images.cpu(),
