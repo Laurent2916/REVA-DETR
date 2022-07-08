@@ -59,8 +59,14 @@ class Up(nn.Module):
         # input is CHW
         diffY = x2.size()[2] - x1.size()[2]
         diffX = x2.size()[3] - x1.size()[3]
+        diffY2 = torch.div(diffY, 2, rounding_mode="trunc")
+        diffX2 = torch.div(diffX, 2, rounding_mode="trunc")
 
-        x1 = F.pad(x1, [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2])
+        x1 = F.pad(
+            input=x1,
+            pad=[diffX2, diffX - diffX2, diffY2, diffY - diffY2],
+        )
+
         x = torch.cat([x2, x1], dim=1)
 
         return self.conv(x)

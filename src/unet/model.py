@@ -268,14 +268,14 @@ class UNet(pl.LightningModule):
         # export model to pth
         torch.save(self.state_dict(), f"checkpoints/model.pth")
         artifact = wandb.Artifact("pth", type="model")
-        artifact.add_file(f"checkpoints/model.pth")
+        artifact.add_file("checkpoints/model.pth")
         wandb.run.log_artifact(artifact)
 
         # export model to onnx
         dummy_input = torch.randn(1, 3, 512, 512, requires_grad=True)
         torch.onnx.export(self, dummy_input, f"checkpoints/model.onnx")
         artifact = wandb.Artifact("onnx", type="model")
-        artifact.add_file(f"checkpoints/model.onnx")
+        artifact.add_file("checkpoints/model.onnx")
         wandb.run.log_artifact(artifact)
 
     def configure_optimizers(self):
