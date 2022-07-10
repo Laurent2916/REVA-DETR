@@ -73,7 +73,7 @@ class UNetModule(pl.LightningModule):
             columns = ["ID", "image", "ground truth", "prediction", "dice", "dice_bin"]
             for i, (img, mask, pred, pred_bin) in enumerate(
                 zip(  # TODO: use comprehension list to zip the dictionnary
-                    tensors["images"].cpu(),
+                    tensors["data"].cpu(),
                     tensors["ground_truth"].cpu(),
                     tensors["prediction"].cpu(),
                     tensors["binary"]
@@ -121,7 +121,7 @@ class UNetModule(pl.LightningModule):
         if batch_idx % 50 == 0 or metrics["dice"] > 0.9:
             for i, (img, mask, pred, pred_bin) in enumerate(
                 zip(  # TODO: use comprehension list to zip the dictionnary
-                    tensors["images"].cpu(),
+                    tensors["data"].cpu(),
                     tensors["ground_truth"].cpu(),
                     tensors["prediction"].cpu(),
                     tensors["binary"]
@@ -150,11 +150,12 @@ class UNetModule(pl.LightningModule):
                     ]
                 )
 
-        return metrics
+        return metrics, rows
 
     def validation_epoch_end(self, validation_outputs):
         # unpacking
-        metricss, rowss = validation_outputs
+        metricss = [v[0] for v in validation_outputs]
+        rowss = [v[1] for v in validation_outputs]
 
         # metrics flattening
         metrics = {
@@ -162,7 +163,7 @@ class UNetModule(pl.LightningModule):
             "dice_bin": torch.stack([d["dice_bin"] for d in metricss]).mean(),
             "bce": torch.stack([d["bce"] for d in metricss]).mean(),
             "mae": torch.stack([d["mae"] for d in metricss]).mean(),
-            "accuracy": torch.stack([d["accuracy"] for d in validation_outputs]).mean(),
+            "accuracy": torch.stack([d["accuracy"] for d in metricss]).mean(),
         }
 
         # log metrics

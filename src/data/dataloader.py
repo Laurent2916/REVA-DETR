@@ -1,6 +1,6 @@
 import albumentations as A
 import pytorch_lightning as pl
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 
 import wandb
 from utils import RandomPaste
@@ -8,7 +8,7 @@ from utils import RandomPaste
 from .dataset import LabeledDataset, SyntheticDataset
 
 
-class SyntheticSphere(pl.LightningDataModule):
+class Spheres(pl.LightningDataModule):
     def __init__(self):
         super().__init__()
 
@@ -25,7 +25,7 @@ class SyntheticSphere(pl.LightningDataModule):
         )
 
         dataset = SyntheticDataset(image_dir=wandb.config.DIR_TRAIN_IMG, transform=transform)
-        # ds_train = torch.utils.data.Subset(ds_train, list(range(0, len(ds_train), len(ds_train) // 10000)))
+        dataset = Subset(dataset, list(range(0, len(dataset), len(dataset) // 10000 + 1)))
 
         return DataLoader(
             dataset,
@@ -37,6 +37,7 @@ class SyntheticSphere(pl.LightningDataModule):
 
     def val_dataloader(self):
         dataset = LabeledDataset(image_dir=wandb.config.DIR_VALID_IMG)
+        dataset = Subset(dataset, list(range(0, len(dataset), len(dataset) // 100 + 1)))
 
         return DataLoader(
             dataset,

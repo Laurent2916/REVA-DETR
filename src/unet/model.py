@@ -29,8 +29,6 @@ class UNet(nn.Module):
     def forward(self, x):
         skips = []
 
-        x = x.to(self.device)
-
         x = self.inc(x)
 
         for down in self.downs:

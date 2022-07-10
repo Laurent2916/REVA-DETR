@@ -1,1 +1,1 @@
-from .dataloader import SyntheticSphere
+from .dataloader import Spheres

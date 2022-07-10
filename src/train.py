@@ -1,11 +1,12 @@
 import logging
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import RichProgressBar
+from pytorch_lightning.callbacks import ModelCheckpoint, RichProgressBar
 from pytorch_lightning.loggers import WandbLogger
 
 import wandb
-from unet import UNet
+from data import Spheres
+from unet import UNetModule
 
 CONFIG = {
     "DIR_TRAIN_IMG": "/home/lilian/data_disk/lfainsin/train/",
@@ -18,9 +19,9 @@ CONFIG = {
     "PIN_MEMORY": True,
     "BENCHMARK": True,
     "DEVICE": "gpu",
-    "WORKERS": 10,
+    "WORKERS": 14,
     "EPOCHS": 1,
-    "BATCH_SIZE": 32,
+    "BATCH_SIZE": 16 * 3,
     "LEARNING_RATE": 1e-4,
     "WEIGHT_DECAY": 1e-8,
     "MOMENTUM": 0.9,
@@ -45,7 +46,7 @@ if __name__ == "__main__":
     pl.seed_everything(69420, workers=True)
 
     # Create network
-    net = UNet(
+    model = UNetModule(
         n_channels=CONFIG["N_CHANNELS"],
         n_classes=CONFIG["N_CLASSES"],
         batch_size=CONFIG["BATCH_SIZE"],
@@ -54,27 +55,31 @@ if __name__ == "__main__":
     )
 
     # log gradients and weights regularly
-    logger.watch(net, log="all")
+    logger.watch(model, log="all")
 
     # create checkpoint callback
-    checkpoint_callback = pl.ModelCheckpoint(
+    checkpoint_callback = ModelCheckpoint(
         dirpath="checkpoints",
         monitor="val/dice",
     )
+
+    # Create the dataloaders
+    datamodule = Spheres()
 
     # Create the trainer
     trainer = pl.Trainer(
         max_epochs=CONFIG["EPOCHS"],
         accelerator=CONFIG["DEVICE"],
-        # precision=16,
         benchmark=CONFIG["BENCHMARK"],
-        val_check_interval=100,
-        callbacks=RichProgressBar(),
+        # profiler="simple",
+        # precision=16,
         logger=logger,
         log_every_n_steps=1,
+        val_check_interval=100,
+        callbacks=RichProgressBar(),
     )
 
-    trainer.fit(model=net)
+    trainer.fit(model=model, datamodule=datamodule)
 
     # stop wandb
     wandb.run.finish()

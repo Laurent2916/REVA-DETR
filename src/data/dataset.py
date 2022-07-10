@@ -63,7 +63,7 @@ class LabeledDataset(Dataset):
         # convert image & mask to Tensor float in [0, 1]
         post_process = A.Compose(
             [
-                # A.SmallestMaxSize(1024),
+                A.SmallestMaxSize(1024),
                 A.ToFloat(max_value=255),
                 ToTensorV2(),
             ],
