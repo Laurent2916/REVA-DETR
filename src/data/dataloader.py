@@ -30,6 +30,7 @@ class Spheres(pl.LightningDataModule):
         return DataLoader(
             dataset,
             shuffle=True,
+            prefetch_factor=8,
             batch_size=wandb.config.BATCH_SIZE,
             num_workers=wandb.config.WORKERS,
             pin_memory=wandb.config.PIN_MEMORY,
@@ -43,6 +44,7 @@ class Spheres(pl.LightningDataModule):
             dataset,
             shuffle=False,
             batch_size=1,
+            prefetch_factor=8,
             num_workers=wandb.config.WORKERS,
             pin_memory=wandb.config.PIN_MEMORY,
         )

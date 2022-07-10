@@ -63,12 +63,12 @@ class RandomPaste(A.DualTransform):
                 angle=angle,
                 translate=(0, 0),
                 shear=(shearx, sheary),
-                interpolation=T.InterpolationMode.BICUBIC,
+                interpolation=T.InterpolationMode.BILINEAR,
             )
             paste_img = T.functional.resize(
                 paste_img,
                 size=shape,
-                interpolation=T.InterpolationMode.BICUBIC,
+                interpolation=T.InterpolationMode.BILINEAR,
             )
 
             paste_mask = T.functional.affine(
@@ -77,12 +77,12 @@ class RandomPaste(A.DualTransform):
                 angle=angle,
                 translate=(0, 0),
                 shear=(shearx, sheary),
-                interpolation=T.InterpolationMode.BICUBIC,
+                interpolation=T.InterpolationMode.BILINEAR,
             )
             paste_mask = T.functional.resize(
                 paste_mask,
                 size=shape,
-                interpolation=T.InterpolationMode.BICUBIC,
+                interpolation=T.InterpolationMode.BILINEAR,
             )
 
             img.paste(paste_img, (x, y), paste_mask)
@@ -103,12 +103,12 @@ class RandomPaste(A.DualTransform):
                 angle=angle,
                 translate=(0, 0),
                 shear=(shearx, sheary),
-                interpolation=T.InterpolationMode.BICUBIC,
+                interpolation=T.InterpolationMode.BILINEAR,
             )
             paste_mask = T.functional.resize(
                 paste_mask,
                 size=shape,
-                interpolation=T.InterpolationMode.BICUBIC,
+                interpolation=T.InterpolationMode.BILINEAR,
             )
 
             # binarize the mask -> {0, 1}
