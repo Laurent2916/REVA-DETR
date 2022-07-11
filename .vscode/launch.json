@@ -18,7 +18,7 @@
         "--model",
         "good.onnx",
       ],
-      "justMyCode": true
+      "justMyCode": false
     }
   ]
 }

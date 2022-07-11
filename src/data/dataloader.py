@@ -36,19 +36,6 @@ class Spheres(pl.LightningDataModule):
             pin_memory=wandb.config.PIN_MEMORY,
         )
 
-        # dataset = LabeledDataset(image_dir="/home/lilian/data_disk/lfainsin/prerender/")
-        # dataset = LabeledDataset(image_dir=wandb.config.DIR_VALID_IMG)
-        # dataset = Subset(dataset, list(range(0, len(dataset), len(dataset) // 100 + 1)))
-
-        # return DataLoader(
-        #     dataset,
-        #     shuffle=True,
-        #     batch_size=8,
-        #     prefetch_factor=8,
-        #     num_workers=wandb.config.WORKERS,
-        #     pin_memory=wandb.config.PIN_MEMORY,
-        # )
-
     def val_dataloader(self):
         dataset = LabeledDataset(image_dir=wandb.config.DIR_VALID_IMG)
         dataset = Subset(dataset, list(range(0, len(dataset), len(dataset) // 100 + 1)))
@@ -56,7 +43,7 @@ class Spheres(pl.LightningDataModule):
         return DataLoader(
             dataset,
             shuffle=False,
-            batch_size=1,
+            batch_size=8,
             prefetch_factor=8,
             num_workers=wandb.config.WORKERS,
             pin_memory=wandb.config.PIN_MEMORY,

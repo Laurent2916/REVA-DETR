@@ -1,0 +1,41 @@
+DIR_TRAIN_IMG:
+  value: "/home/lilian/data_disk/lfainsin/train/"
+DIR_VALID_IMG:
+  value: "/home/lilian/data_disk/lfainsin/test_batched_fast/"
+DIR_SPHERE:
+  value: "/home/lilian/data_disk/lfainsin/spheres+real/"
+
+FEATURES:
+  value: { 8, 16, 32, 64 }
+N_CHANNELS:
+  value: 3,
+N_CLASSES:
+  value: 1,
+
+AMP:
+  value: True
+PIN_MEMORY:
+  value: True
+BENCHMARK:
+  value: True
+DEVICE:
+  value: gpu
+WORKERS:
+  value: 8
+
+IMG_SIZE:
+  value: 512
+SPHERES:
+  value: 5
+
+EPOCHS:
+  value: 10
+BATCH_SIZE:
+  value: 16
+
+LEARNING_RATE:
+  value: 1e-4
+WEIGHT_DECAY:
+  value: 1e-8
+MOMENTUM:
+  value: 0.9
