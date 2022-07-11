@@ -31,7 +31,7 @@ class TableLog(Callback):
                 zip(
                     images.cpu(),
                     ground_truth.cpu(),
-                    predictions["linear"].cpu(),
+                    predictions["linear"].cpu().float(),
                     predictions["binary"].cpu().squeeze(1).int().numpy(),
                 )
             ):

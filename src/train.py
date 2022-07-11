@@ -38,7 +38,7 @@ if __name__ == "__main__":
     # model.load_state_dict(state_dict)
 
     # log gradients and weights regularly
-    logger.watch(model, log="all")
+    logger.watch(model.model, log="all")
 
     # Create the dataloaders
     datamodule = Spheres()
@@ -49,7 +49,7 @@ if __name__ == "__main__":
         accelerator=wandb.config.DEVICE,
         benchmark=wandb.config.BENCHMARK,
         # profiler="simple",
-        # precision=16,
+        precision=16,
         logger=logger,
         log_every_n_steps=1,
         val_check_interval=100,

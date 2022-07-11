@@ -58,7 +58,7 @@ class LabeledDataset(Dataset):
 
         # open and convert mask
         mask_path = self.images[index].parent.joinpath("MASK.PNG")
-        mask = np.array(Image.open(mask_path).convert("L"), dtype=np.uint8) / 255
+        mask = np.array(Image.open(mask_path).convert("L"), dtype=np.uint8) // 255
 
         # convert image & mask to Tensor float in [0, 1]
         post_process = A.Compose(
@@ -71,5 +71,9 @@ class LabeledDataset(Dataset):
         augmentations = post_process(image=image, mask=mask)
         image = augmentations["image"]
         mask = augmentations["mask"]
+
+        # make sure image and mask are floats, TODO: mettre dans le post_process, ToFloat Image only
+        image = image.float()
+        mask = mask.float()
 
         return image, mask

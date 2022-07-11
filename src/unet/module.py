@@ -38,7 +38,7 @@ class UNetModule(pl.LightningModule):
 
         # forward pass, compute masks
         prediction = self.model(data)
-        binary = (torch.sigmoid(prediction) > 0.5).float()  # TODO: check if float necessary
+        binary = (torch.sigmoid(prediction) > 0.5).half()
 
         # compute metrics (in dictionnary)
         metrics = {

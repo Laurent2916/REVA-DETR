@@ -87,7 +87,7 @@ class RandomPaste(A.DualTransform):
 
             img.paste(paste_img, (x, y), paste_mask)
 
-        return np.asarray(img.convert("RGB"))
+        return np.array(img.convert("RGB"))
 
     def apply_to_mask(self, mask, augmentations, paste_mask, **params):
         # convert mask to Image, needed for `paste` function
@@ -116,7 +116,7 @@ class RandomPaste(A.DualTransform):
 
             mask.paste(paste_mask, (x, y), paste_mask_bin)
 
-        return np.asarray(mask.convert("L"))
+        return np.array(mask.convert("L"))
 
     def get_params_dependent_on_targets(self, params):
         # choose a random image and its corresponding mask
