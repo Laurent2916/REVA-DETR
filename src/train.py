@@ -1,17 +1,19 @@
 import logging
 
 import pytorch_lightning as pl
+import torch
 from pytorch_lightning.callbacks import ModelCheckpoint, RichProgressBar
 from pytorch_lightning.loggers import WandbLogger
 
 import wandb
 from data import Spheres
 from unet import UNetModule
+from utils import TableLog
 
 CONFIG = {
     "DIR_TRAIN_IMG": "/home/lilian/data_disk/lfainsin/train/",
-    "DIR_VALID_IMG": "//home/lilian/data_disk/lfainsin/test_split/",
-    "DIR_SPHERE": "/home/lilian/data_disk/lfainsin/spheres+real_split/",
+    "DIR_VALID_IMG": "/home/lilian/data_disk/lfainsin/test_batched_fast/",
+    "DIR_SPHERE": "/home/lilian/data_disk/lfainsin/spheres+real/",
     "FEATURES": [8, 16, 32, 64],
     "N_CHANNELS": 3,
     "N_CLASSES": 1,
@@ -19,9 +21,9 @@ CONFIG = {
     "PIN_MEMORY": True,
     "BENCHMARK": True,
     "DEVICE": "gpu",
-    "WORKERS": 14,
-    "EPOCHS": 1,
-    "BATCH_SIZE": 16 * 3,
+    "WORKERS": 8,
+    "EPOCHS": 10,
+    "BATCH_SIZE": 16,
     "LEARNING_RATE": 1e-4,
     "WEIGHT_DECAY": 1e-8,
     "MOMENTUM": 0.9,
@@ -54,12 +56,18 @@ if __name__ == "__main__":
         features=CONFIG["FEATURES"],
     )
 
+    # load checkpoint
+    state_dict = torch.load("checkpoints/synth.pth")
+    state_dict = dict([(f"model.{key}", value) for key, value in state_dict.items()])
+    model.load_state_dict(state_dict)
+
     # log gradients and weights regularly
     logger.watch(model, log="all")
 
     # create checkpoint callback
     checkpoint_callback = ModelCheckpoint(
         dirpath="checkpoints",
+        filename="model.ckpt",
         monitor="val/dice",
     )
 
@@ -75,8 +83,8 @@ if __name__ == "__main__":
         # precision=16,
         logger=logger,
         log_every_n_steps=1,
-        val_check_interval=100,
-        callbacks=RichProgressBar(),
+        val_check_interval=25,
+        callbacks=[RichProgressBar(), checkpoint_callback, TableLog()],
     )
 
     trainer.fit(model=model, datamodule=datamodule)

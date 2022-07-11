@@ -52,105 +52,30 @@ class UNetModule(pl.LightningModule):
         }
 
         # wrap tensors in dictionnary
-        tensors = {
-            "data": data,
-            "ground_truth": ground_truth,
-            "prediction": prediction,
+        predictions = {
+            "linear": prediction,
             "binary": binary,
         }
 
-        return metrics, tensors
+        return metrics, predictions
 
     def training_step(self, batch, batch_idx):
         # compute metrics
-        metrics, tensors = self.shared_step(batch)
+        metrics, _ = self.shared_step(batch)
 
         # log metrics
         self.log_dict(dict([(f"train/{key}", value) for key, value in metrics.items()]))
 
-        if batch_idx == 5000:
-            rows = []
-            columns = ["ID", "image", "ground truth", "prediction", "dice", "dice_bin"]
-            for i, (img, mask, pred, pred_bin) in enumerate(
-                zip(  # TODO: use comprehension list to zip the dictionnary
-                    tensors["data"].cpu(),
-                    tensors["ground_truth"].cpu(),
-                    tensors["prediction"].cpu(),
-                    tensors["binary"]
-                    .cpu()
-                    .squeeze(1)
-                    .int()
-                    .numpy(),  # TODO: check if .functions can be moved elsewhere
-                )
-            ):
-                rows.append(
-                    [
-                        i,
-                        wandb.Image(img),
-                        wandb.Image(mask),
-                        wandb.Image(
-                            pred,
-                            masks={
-                                "predictions": {
-                                    "mask_data": pred_bin,
-                                    "class_labels": class_labels,
-                                },
-                            },
-                        ),
-                        metrics["dice"],
-                        metrics["dice_bin"],
-                    ]
-                )
-
-            # log table
-            wandb.log(
-                {
-                    "train/predictions": wandb.Table(
-                        columns=columns,
-                        data=rows,
-                    )
-                }
-            )
-
         return metrics["dice"]
 
     def validation_step(self, batch, batch_idx):
-        metrics, tensors = self.shared_step(batch)
+        # compute metrics
+        metrics, predictions = self.shared_step(batch)
 
-        rows = []
-        if batch_idx % 50 == 0 or metrics["dice"] > 0.9:
-            for i, (img, mask, pred, pred_bin) in enumerate(
-                zip(  # TODO: use comprehension list to zip the dictionnary
-                    tensors["data"].cpu(),
-                    tensors["ground_truth"].cpu(),
-                    tensors["prediction"].cpu(),
-                    tensors["binary"]
-                    .cpu()
-                    .squeeze(1)
-                    .int()
-                    .numpy(),  # TODO: check if .functions can be moved elsewhere
-                )
-            ):
-                rows.append(
-                    [
-                        i,
-                        wandb.Image(img),
-                        wandb.Image(mask),
-                        wandb.Image(
-                            pred,
-                            masks={
-                                "predictions": {
-                                    "mask_data": pred_bin,
-                                    "class_labels": class_labels,
-                                },
-                            },
-                        ),
-                        metrics["dice"],
-                        metrics["dice_bin"],
-                    ]
-                )
+        # log metrics
+        self.log_dict(dict([(f"val/{key}", value) for key, value in metrics.items()]))
 
-        return metrics, rows
+        return metrics, predictions
 
     def validation_epoch_end(self, validation_outputs):
         # unpacking
