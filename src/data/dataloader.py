@@ -31,19 +31,19 @@ class Spheres(pl.LightningDataModule):
             dataset,
             shuffle=True,
             prefetch_factor=8,
-            batch_size=wandb.config.BATCH_SIZE,
+            batch_size=wandb.config.TRAIN_BATCH_SIZE,
             num_workers=wandb.config.WORKERS,
             pin_memory=wandb.config.PIN_MEMORY,
         )
 
     def val_dataloader(self):
         dataset = LabeledDataset(image_dir=wandb.config.DIR_VALID_IMG)
-        dataset = Subset(dataset, list(range(0, len(dataset), len(dataset) // 100 + 1)))
+        # dataset = Subset(dataset, list(range(0, len(dataset), len(dataset) // 100 + 1)))
 
         return DataLoader(
             dataset,
             shuffle=False,
-            batch_size=8,
+            batch_size=wandb.config.VAL_BATCH_SIZE,
             prefetch_factor=8,
             num_workers=wandb.config.WORKERS,
             pin_memory=wandb.config.PIN_MEMORY,

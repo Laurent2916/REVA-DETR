@@ -16,14 +16,12 @@ class_labels = {
 
 
 class UNetModule(pl.LightningModule):
-    def __init__(self, n_channels, n_classes, learning_rate, batch_size, features=[64, 128, 256, 512]):
+    def __init__(self, n_channels, n_classes, features=[64, 128, 256, 512]):
         super(UNetModule, self).__init__()
 
         # Hyperparameters
         self.n_channels = n_channels
         self.n_classes = n_classes
-        self.learning_rate = learning_rate
-        self.batch_size = batch_size
 
         # log hyperparameters
         self.save_hyperparameters()
@@ -111,7 +109,7 @@ class UNetModule(pl.LightningModule):
     def configure_optimizers(self):
         optimizer = torch.optim.RMSprop(
             self.parameters(),
-            lr=self.learning_rate,
+            lr=wandb.config.LEARNING_RATE,
             weight_decay=wandb.config.WEIGHT_DECAY,
             momentum=wandb.config.MOMENTUM,
         )

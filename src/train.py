@@ -13,9 +13,10 @@ if __name__ == "__main__":
     # setup logging
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-    # setup wandb, config loaded from config-default.yaml
+    # setup wandb
     logger = WandbLogger(
         project="U-Net",
+        config="wandb.yaml",
         settings=wandb.Settings(
             code_dir="./src/",
         ),
@@ -28,8 +29,6 @@ if __name__ == "__main__":
     model = UNetModule(
         n_channels=wandb.config.N_CHANNELS,
         n_classes=wandb.config.N_CLASSES,
-        batch_size=wandb.config.BATCH_SIZE,
-        learning_rate=wandb.config.LEARNING_RATE,
         features=wandb.config.FEATURES,
     )
 

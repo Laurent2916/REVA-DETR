@@ -6,11 +6,11 @@ DIR_SPHERE:
   value: "/home/lilian/data_disk/lfainsin/spheres+real/"
 
 FEATURES:
-  value: { 8, 16, 32, 64 }
+  value: [8, 16, 32, 64]
 N_CHANNELS:
-  value: 3,
+  value: 3
 N_CLASSES:
-  value: 1,
+  value: 1
 
 AMP:
   value: True
@@ -30,12 +30,14 @@ SPHERES:
 
 EPOCHS:
   value: 10
-BATCH_SIZE:
+TRAIN_BATCH_SIZE:
   value: 16
+VAL_BATCH_SIZE:
+  value: 8
 
 LEARNING_RATE:
-  value: 1e-4
+  value: 1.0e-4
 WEIGHT_DECAY:
-  value: 1e-8
+  value: 1.0e-8
 MOMENTUM:
   value: 0.9
