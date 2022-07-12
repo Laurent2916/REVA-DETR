@@ -24,7 +24,7 @@ class RandomPaste(A.DualTransform):
         self,
         nb,
         image_dir,
-        scale_range=(0.05, 0.25),
+        scale_range=(0.05, 0.5),
         always_apply=True,
         p=1.0,
     ):
@@ -138,7 +138,12 @@ class RandomPaste(A.DualTransform):
         # generate augmentations
         augmentations = []
         NB = rd.randint(1, self.nb)
-        while len(augmentations) < NB:  # TODO: mettre une condition d'arret ite max
+        ite = 0
+        while len(augmentations) < NB:
+
+            if ite > 100:
+                break
+
             scale = rd.uniform(*self.scale_range) * min_scale
             shape = np.array(paste_shape * scale, dtype=np.uint)
 
