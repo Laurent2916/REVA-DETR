@@ -67,9 +67,11 @@ class TableLog(Callback):
 
 
 class ArtifactLog(Callback):
+    def on_fit_start(self, trainer, pl_module):
+        self.best = 1
+
     def on_validation_epoch_start(self, trainer, pl_module):
         self.dices = []
-        self.best = 1
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         # unpacking
@@ -78,16 +80,14 @@ class ArtifactLog(Callback):
 
     def on_validation_epoch_end(self, trainer, pl_module):
         dice = np.mean(self.dices)
-        self.dices = []
 
         if dice < self.best:
             self.best = dice
 
             # create checkpoint
-            torch.save(self.state_dict(), "checkpoints/model.pth")
-            # trainer.save_checkpoint("example.ckpt") # TODO: change to .ckpt
+            trainer.save_checkpoint("checkpoints/model.ckpt")
 
-            # create and log artifact
-            artifact = wandb.Artifact("pth", type="model")
-            artifact.add_file("checkpoints/model.pth")
+            # log artifact
+            artifact = wandb.Artifact("ckpt", type="model")
+            artifact.add_file("checkpoints/model.ckpt")
             wandb.run.log_artifact(artifact)

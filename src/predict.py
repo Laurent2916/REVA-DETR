@@ -5,7 +5,6 @@ import albumentations as A
 import numpy as np
 import onnx
 import onnxruntime
-import torch
 from albumentations.pytorch import ToTensorV2
 from PIL import Image
 
@@ -58,13 +57,13 @@ if __name__ == "__main__":
     img = Image.open(args.input).convert("RGB")
 
     logging.info(f"Preprocessing image {args.input}")
-    tf = A.Compose(
+    transform = A.Compose(
         [
             A.ToFloat(max_value=255),
             ToTensorV2(),
         ],
     )
-    aug = tf(image=np.asarray(img))
+    aug = transform(image=np.asarray(img))
     img = aug["image"]
 
     logging.info(f"Predicting image {args.input}")

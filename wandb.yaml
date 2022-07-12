@@ -26,14 +26,16 @@ WORKERS:
 IMG_SIZE:
   value: 512
 SPHERES:
-  value: 5
+  value: 3
 
 EPOCHS:
-  value: 10
+  value: 20
 TRAIN_BATCH_SIZE:
-  value: 16
+  value: 64 # 100
 VAL_BATCH_SIZE:
-  value: 8
+  value: 8 # 10
+PREFETCH_FACTOR:
+  value: 16
 
 LEARNING_RATE:
   value: 1.0e-4
