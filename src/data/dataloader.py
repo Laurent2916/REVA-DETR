@@ -25,9 +25,9 @@ class Spheres(pl.LightningDataModule):
         # )
 
         # dataset = SyntheticDataset(image_dir=wandb.config.DIR_TRAIN_IMG, transform=transform)
-        # dataset = Subset(dataset, list(range(0, len(dataset), len(dataset) // 10000 + 1)))
 
-        dataset = LabeledDataset2(image_dir="/home/lilian/data_disk/lfainsin/prerender/")
+        dataset = LabeledDataset2(image_dir="/media/disk1/lfainsin/TRAIN_prerender/")
+        dataset = Subset(dataset, list(range(len(dataset))))  # somhow this allows to better utilize the gpu
 
         return DataLoader(
             dataset,
@@ -40,6 +40,7 @@ class Spheres(pl.LightningDataModule):
 
     def val_dataloader(self):
         dataset = LabeledDataset(image_dir=wandb.config.DIR_VALID_IMG)
+        dataset = Subset(dataset, list(range(len(dataset))))  # somhow this allows to better utilize the gpu
 
         return DataLoader(
             dataset,

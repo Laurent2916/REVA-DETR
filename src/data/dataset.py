@@ -81,18 +81,19 @@ class LabeledDataset(Dataset):
 
 class LabeledDataset2(Dataset):
     def __init__(self, image_dir):
-        self.images = list(Path(image_dir).glob("**/*.jpg"))
+        self.image_dir = Path(image_dir)
 
     def __len__(self):
-        return len(self.images)
+        return len(list(self.image_dir.iterdir()))
 
     def __getitem__(self, index):
+        path = self.image_dir / str(index)
+
         # open and convert image
-        image = np.array(Image.open(self.images[index]).convert("RGB"), dtype=np.uint8)
+        image = np.array(Image.open(path / "image.jpg").convert("RGB"), dtype=np.uint8)
 
         # open and convert mask
-        mask_path = self.images[index].parent.joinpath("MASK.PNG")
-        mask = np.array(Image.open(mask_path).convert("L"), dtype=np.uint8) // 255
+        mask = np.array(Image.open(path / "MASK.PNG").convert("L"), dtype=np.uint8) // 255
 
         # convert image & mask to Tensor float in [0, 1]
         post_process = A.Compose(

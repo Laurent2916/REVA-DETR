@@ -19,6 +19,6 @@ services:
     container_name: wandb-local
     hostname: wandb-local
     volumes:
-      - /media/disk2/lfainsin/wandb-local/:/vol
+      - ./wandb-local/:/vol
     ports:
       - 8080:8080

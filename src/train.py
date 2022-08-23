@@ -48,12 +48,13 @@ if __name__ == "__main__":
         max_epochs=wandb.config.EPOCHS,
         accelerator=wandb.config.DEVICE,
         benchmark=wandb.config.BENCHMARK,
-        # profiler="simple",
         precision=16,
         logger=logger,
         log_every_n_steps=1,
         val_check_interval=100,
         callbacks=[RichProgressBar(), ArtifactLog(), TableLog()],
+        # profiler="simple",
+        # num_sanity_val_steps=0,
     )
 
     # actually train the model
