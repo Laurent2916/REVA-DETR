@@ -5,6 +5,7 @@
   "python.linting.lintOnSave": true,
   // "python.linting.flake8Enabled": true,
   // "python.linting.banditEnabled": true,
+  "python.defaultInterpreterPath": ".venv/bin/python",
   "[python]": {
     "editor.codeActionsOnSave": {
       "source.organizeImports": true

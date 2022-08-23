@@ -1,0 +1,24 @@
+version: "3"
+
+services:
+
+  # development container
+  development:
+    container_name: dev
+    hostname: dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/workspace
+    stdin_open: true
+
+  # wandb dashboard
+  wandb:
+    image: wandb/local
+    container_name: wandb-local
+    hostname: wandb-local
+    volumes:
+      - /media/disk2/lfainsin/wandb-local/:/vol
+    ports:
+      - 8080:8080
