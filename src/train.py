@@ -1,11 +1,12 @@
 import logging
 
 import pytorch_lightning as pl
+import wandb
 from pytorch_lightning.callbacks import RichProgressBar
 from pytorch_lightning.loggers import WandbLogger
 
-import wandb
 from data import Spheres
+from mrcnn import MRCNNModule
 from unet import UNetModule
 from utils import ArtifactLog, TableLog
 
@@ -26,10 +27,15 @@ if __name__ == "__main__":
     pl.seed_everything(69420, workers=True)
 
     # Create network
-    model = UNetModule(
-        n_channels=wandb.config.N_CHANNELS,
-        n_classes=wandb.config.N_CLASSES,
-        features=wandb.config.FEATURES,
+    # model = UNetModule(
+    #     n_channels=wandb.config.N_CHANNELS,
+    #     n_classes=wandb.config.N_CLASSES,
+    #     features=wandb.config.FEATURES,
+    # )
+
+    model = MRCNNModule(
+        hidden_layer_size=-1,
+        n_classes=2,
     )
 
     # load checkpoint
@@ -48,6 +54,7 @@ if __name__ == "__main__":
         max_epochs=wandb.config.EPOCHS,
         accelerator=wandb.config.DEVICE,
         benchmark=wandb.config.BENCHMARK,
+        deterministic=True,
         precision=16,
         logger=logger,
         log_every_n_steps=1,

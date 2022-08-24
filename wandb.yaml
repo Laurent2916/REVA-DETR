@@ -29,7 +29,7 @@ SPHERES:
   value: 3
 
 EPOCHS:
-  value: 1
+  value: 3
 TRAIN_BATCH_SIZE:
   value: 128 # 100
 VAL_BATCH_SIZE:

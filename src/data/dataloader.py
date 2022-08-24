@@ -1,8 +1,8 @@
 import albumentations as A
 import pytorch_lightning as pl
+import wandb
 from torch.utils.data import DataLoader, Subset
 
-import wandb
 from utils import RandomPaste
 
 from .dataset import LabeledDataset, LabeledDataset2, SyntheticDataset
@@ -26,7 +26,7 @@ class Spheres(pl.LightningDataModule):
 
         # dataset = SyntheticDataset(image_dir=wandb.config.DIR_TRAIN_IMG, transform=transform)
 
-        dataset = LabeledDataset2(image_dir="/media/disk1/lfainsin/TRAIN_prerender/")
+        dataset = LabeledDataset2(image_dir="/media/disk1/lfainsin/TEST_tmp_mrcnn/")
         dataset = Subset(dataset, list(range(len(dataset))))  # somhow this allows to better utilize the gpu
 
         return DataLoader(
@@ -38,15 +38,15 @@ class Spheres(pl.LightningDataModule):
             pin_memory=wandb.config.PIN_MEMORY,
         )
 
-    def val_dataloader(self):
-        dataset = LabeledDataset(image_dir=wandb.config.DIR_VALID_IMG)
-        dataset = Subset(dataset, list(range(len(dataset))))  # somhow this allows to better utilize the gpu
+    # def val_dataloader(self):
+    #     dataset = LabeledDataset(image_dir=wandb.config.DIR_VALID_IMG)
+    #     dataset = Subset(dataset, list(range(len(dataset))))  # somhow this allows to better utilize the gpu
 
-        return DataLoader(
-            dataset,
-            shuffle=False,
-            prefetch_factor=wandb.config.PREFETCH_FACTOR,
-            batch_size=wandb.config.VAL_BATCH_SIZE,
-            num_workers=wandb.config.WORKERS,
-            pin_memory=wandb.config.PIN_MEMORY,
-        )
+    #     return DataLoader(
+    #         dataset,
+    #         shuffle=False,
+    #         prefetch_factor=wandb.config.PREFETCH_FACTOR,
+    #         batch_size=wandb.config.VAL_BATCH_SIZE,
+    #         num_workers=wandb.config.WORKERS,
+    #         pin_memory=wandb.config.PIN_MEMORY,
+    #     )
