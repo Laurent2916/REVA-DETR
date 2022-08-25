@@ -1,10 +1,10 @@
 import logging
 
 import pytorch_lightning as pl
-import wandb
 from pytorch_lightning.callbacks import RichProgressBar
 from pytorch_lightning.loggers import WandbLogger
 
+import wandb
 from data import Spheres
 from mrcnn import MRCNNModule
 from unet import UNetModule
@@ -58,10 +58,10 @@ if __name__ == "__main__":
         precision=16,
         logger=logger,
         log_every_n_steps=1,
-        val_check_interval=100,
+        # val_check_interval=100,
         callbacks=[RichProgressBar(), ArtifactLog(), TableLog()],
         # profiler="simple",
-        # num_sanity_val_steps=0,
+        num_sanity_val_steps=0,
     )
 
     # actually train the model

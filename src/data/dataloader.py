@@ -1,11 +1,15 @@
 import albumentations as A
 import pytorch_lightning as pl
-import wandb
+from albumentations.pytorch import ToTensorV2
 from torch.utils.data import DataLoader, Subset
 
-from utils import RandomPaste
+import wandb
 
-from .dataset import LabeledDataset, LabeledDataset2, SyntheticDataset
+from .dataset import RealDataset
+
+
+def collate_fn(batch):
+    return tuple(zip(*batch))
 
 
 class Spheres(pl.LightningDataModule):
@@ -13,21 +17,22 @@ class Spheres(pl.LightningDataModule):
         super().__init__()
 
     def train_dataloader(self):
-        # transform = A.Compose(
-        #     [
-        #         A.Resize(wandb.config.IMG_SIZE, wandb.config.IMG_SIZE),
-        #         A.Flip(),
-        #         A.ColorJitter(),
-        #         RandomPaste(wandb.config.SPHERES, wandb.config.DIR_SPHERE),
-        #         A.GaussianBlur(),
-        #         A.ISONoise(),
-        #     ],
-        # )
+        transforms = A.Compose(
+            [
+                A.ToFloat(max_value=255),
+                ToTensorV2(),
+            ],
+            bbox_params=A.BboxParams(
+                format="pascal_voc",
+                min_area=0.0,
+                min_visibility=0.0,
+                label_fields=["labels"],
+            ),
+        )
 
-        # dataset = SyntheticDataset(image_dir=wandb.config.DIR_TRAIN_IMG, transform=transform)
-
-        dataset = LabeledDataset2(image_dir="/media/disk1/lfainsin/TEST_tmp_mrcnn/")
-        dataset = Subset(dataset, list(range(len(dataset))))  # somhow this allows to better utilize the gpu
+        dataset = RealDataset(root="/media/disk1/lfainsin/TEST_tmp_mrcnn/", transforms=transforms)
+        print(f"len(dataset)={len(dataset)}")
+        dataset = Subset(dataset, list(range(len(dataset))))  # somehow this allows to better utilize the gpu
 
         return DataLoader(
             dataset,
@@ -36,11 +41,12 @@ class Spheres(pl.LightningDataModule):
             batch_size=wandb.config.TRAIN_BATCH_SIZE,
             num_workers=wandb.config.WORKERS,
             pin_memory=wandb.config.PIN_MEMORY,
+            collate_fn=collate_fn,
         )
 
     # def val_dataloader(self):
     #     dataset = LabeledDataset(image_dir=wandb.config.DIR_VALID_IMG)
-    #     dataset = Subset(dataset, list(range(len(dataset))))  # somhow this allows to better utilize the gpu
+    #     dataset = Subset(dataset, list(range(len(dataset))))  # somehow this allows to better utilize the gpu
 
     #     return DataLoader(
     #         dataset,
