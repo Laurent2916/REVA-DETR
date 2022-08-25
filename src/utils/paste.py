@@ -49,43 +49,43 @@ class RandomPaste(A.DualTransform):
 
         # paste spheres
         for (x, y, shearx, sheary, shape, angle, brightness, contrast) in augmentations:
-            paste_img = T.functional.adjust_contrast(
+            paste_img_aug = T.functional.adjust_contrast(
                 paste_img,
                 contrast_factor=contrast,
             )
-            paste_img = T.functional.adjust_brightness(
-                paste_img,
+            paste_img_aug = T.functional.adjust_brightness(
+                paste_img_aug,
                 brightness_factor=brightness,
             )
-            paste_img = T.functional.affine(
-                paste_img,
+            paste_img_aug = T.functional.affine(
+                paste_img_aug,
                 scale=0.95,
                 angle=angle,
                 translate=(0, 0),
                 shear=(shearx, sheary),
-                interpolation=T.InterpolationMode.BILINEAR,
+                interpolation=T.InterpolationMode.BICUBIC,
             )
-            paste_img = T.functional.resize(
-                paste_img,
+            paste_img_aug = T.functional.resize(
+                paste_img_aug,
                 size=shape,
-                interpolation=T.InterpolationMode.BILINEAR,
+                interpolation=T.InterpolationMode.LANCZOS,
             )
 
-            paste_mask = T.functional.affine(
+            paste_mask_aug = T.functional.affine(
                 paste_mask,
                 scale=0.95,
                 angle=angle,
                 translate=(0, 0),
                 shear=(shearx, sheary),
-                interpolation=T.InterpolationMode.BILINEAR,
+                interpolation=T.InterpolationMode.BICUBIC,
             )
-            paste_mask = T.functional.resize(
-                paste_mask,
+            paste_mask_aug = T.functional.resize(
+                paste_mask_aug,
                 size=shape,
-                interpolation=T.InterpolationMode.BILINEAR,
+                interpolation=T.InterpolationMode.LANCZOS,
             )
 
-            img.paste(paste_img, (x, y), paste_mask)
+            img.paste(paste_img_aug, (x, y), paste_mask_aug)
 
         return np.array(img.convert("RGB"))
 
@@ -96,25 +96,25 @@ class RandomPaste(A.DualTransform):
         # copy paste_img and paste_mask
         paste_mask = paste_mask.copy()
 
-        for (x, y, shearx, sheary, shape, angle, _, _) in augmentations:
-            paste_mask = T.functional.affine(
+        for i, (x, y, shearx, sheary, shape, angle, _, _) in enumerate(augmentations):
+            paste_mask_aug = T.functional.affine(
                 paste_mask,
                 scale=0.95,
                 angle=angle,
                 translate=(0, 0),
                 shear=(shearx, sheary),
-                interpolation=T.InterpolationMode.BILINEAR,
+                interpolation=T.InterpolationMode.BICUBIC,
             )
-            paste_mask = T.functional.resize(
-                paste_mask,
+            paste_mask_aug = T.functional.resize(
+                paste_mask_aug,
                 size=shape,
-                interpolation=T.InterpolationMode.BILINEAR,
+                interpolation=T.InterpolationMode.LANCZOS,
             )
 
             # binarize the mask -> {0, 1}
-            paste_mask_bin = paste_mask.point(lambda p: 1 if p > 10 else 0)
+            paste_mask_aug_bin = paste_mask_aug.point(lambda p: i + 1 if p > 10 else 0)
 
-            mask.paste(paste_mask, (x, y), paste_mask_bin)
+            mask.paste(paste_mask_aug, (x, y), paste_mask_aug_bin)
 
         return np.array(mask.convert("L"))
 
@@ -164,6 +164,8 @@ class RandomPaste(A.DualTransform):
 
             augmentations.append((x, y, shearx, sheary, tuple(shape), angle, brightness, contrast))
 
+            ite += 1
+
         params.update(
             {
                 "augmentations": augmentations,
@@ -175,8 +177,8 @@ class RandomPaste(A.DualTransform):
         return params
 
     @staticmethod
-    def overlap(positions, x1, y1, w, h):
-        for x2, y2, _, _, _, _, _, _ in positions:
-            if x1 + w >= x2 and x1 <= x2 + w and y1 + h >= y2 and y1 <= y2 + h:
+    def overlap(positions, x1, y1, w1, h1):
+        for x2, y2, _, _, (w2, h2), _, _, _ in positions:
+            if x1 + w1 >= x2 and x1 <= x2 + w2 and y1 + h1 >= y2 and y1 <= y2 + h2:
                 return True
         return False
