@@ -19,8 +19,13 @@ class Spheres(pl.LightningDataModule):
     def train_dataloader(self):
         transforms = A.Compose(
             [
-                A.ToFloat(max_value=255),
-                ToTensorV2(),
+                A.Normalize(
+                    mean=[0.485, 0.456, 0.406],
+                    std=[0.229, 0.224, 0.225],
+                    max_pixel_value=255,
+                ),  # [0, 255] -> [0.0, 1.0] normalized
+                # A.ToFloat(max_value=255),
+                ToTensorV2(),  # HWC -> CHW
             ],
             bbox_params=A.BboxParams(
                 format="pascal_voc",
@@ -30,17 +35,18 @@ class Spheres(pl.LightningDataModule):
             ),
         )
 
-        dataset = RealDataset(root="/media/disk1/lfainsin/TEST_tmp_mrcnn/", transforms=transforms)
-        print(f"len(dataset)={len(dataset)}")
+        dataset = RealDataset(root="/dev/shm/TEST_tmp_mrcnn/", transforms=transforms)
         dataset = Subset(dataset, list(range(len(dataset))))  # somehow this allows to better utilize the gpu
+        # dataset = Subset(dataset, list(range(20)))  # somehow this allows to better utilize the gpu
 
         return DataLoader(
             dataset,
-            shuffle=True,
+            shuffle=False,
+            persistent_workers=True,
             prefetch_factor=wandb.config.PREFETCH_FACTOR,
             batch_size=wandb.config.TRAIN_BATCH_SIZE,
-            num_workers=wandb.config.WORKERS,
             pin_memory=wandb.config.PIN_MEMORY,
+            num_workers=wandb.config.WORKERS,
             collate_fn=collate_fn,
         )
 

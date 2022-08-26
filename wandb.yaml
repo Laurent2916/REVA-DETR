@@ -17,11 +17,17 @@ AMP:
 PIN_MEMORY:
   value: True
 BENCHMARK:
+  value: True
+DETERMINISTIC:
   value: False
+PRECISION:
+  value: 16
+SEED:
+  value: 69420
 DEVICE:
   value: gpu
 WORKERS:
-  value: 1
+  value: 16
 
 IMG_SIZE:
   value: 512
@@ -29,17 +35,17 @@ SPHERES:
   value: 3
 
 EPOCHS:
-  value: 3
+  value: 10
 TRAIN_BATCH_SIZE:
-  value: 2 # 100
+  value: 8
 VAL_BATCH_SIZE:
-  value: 0 # 10
+  value: 0
 PREFETCH_FACTOR:
-  value: 1
+  value: 2
 
 LEARNING_RATE:
-  value: 1.0e-4
+  value: 0.005
 WEIGHT_DECAY:
-  value: 1.0e-8
+  value: 0.0005
 MOMENTUM:
   value: 0.9
