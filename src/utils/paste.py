@@ -147,11 +147,11 @@ class RandomPaste(A.DualTransform):
             scale = rd.uniform(*self.scale_range) * min_scale
             shape = np.array(paste_shape * scale, dtype=np.uint)
 
-            x = rd.randint(0, target_shape[0] - shape[0])
-            y = rd.randint(0, target_shape[1] - shape[1])
+            x = rd.randint(0, target_shape[1] - shape[1])
+            y = rd.randint(0, target_shape[0] - shape[0])
 
             # check for overlapping
-            if RandomPaste.overlap(augmentations, x, y, shape[0], shape[1]):
+            if RandomPaste.overlap(augmentations, x, y, shape[1], shape[0]):
                 continue
 
             shearx = rd.uniform(-2, 2)
