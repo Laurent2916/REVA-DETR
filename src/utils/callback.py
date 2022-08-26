@@ -70,6 +70,10 @@ class ArtifactLog(Callback):
     def on_fit_start(self, trainer, pl_module):
         self.best = 1
 
+    def on_train_epoch_end(self, trainer, pl_module):
+        # create checkpoint
+        torch.save(pl_module.state_dict(), "checkpoints/model.pth")
+
     def on_validation_epoch_start(self, trainer, pl_module):
         self.dices = []
 
