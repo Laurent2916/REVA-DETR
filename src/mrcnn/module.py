@@ -4,14 +4,19 @@ import pytorch_lightning as pl
 import torch
 import torchvision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
-from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
+from torchvision.models.detection.mask_rcnn import (
+    MaskRCNN_ResNet50_FPN_Weights,
+    MaskRCNNPredictor,
+)
 
 import wandb
+from utils.coco_eval import CocoEvaluator
+from utils.coco_utils import get_coco_api_from_dataset, get_iou_types
 
 
 def get_model_instance_segmentation(num_classes):
     # load an instance segmentation model pre-trained on COCO
-    model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True)  # TODO: tester v2
+    model = torchvision.models.detection.maskrcnn_resnet50_fpn(weights=MaskRCNN_ResNet50_FPN_Weights.DEFAULT)
 
     # get number of input features for the classifier
     in_features = model.roi_heads.box_predictor.cls_score.in_features
@@ -41,87 +46,83 @@ class MRCNNModule(pl.LightningModule):
         # Network
         self.model = get_model_instance_segmentation(n_classes)
 
-    # def forward(self, imgs):
-    #     # Torchvision FasterRCNN returns the loss during training
-    #     # and the boxes during eval
-    #     self.model.eval()
-    #     return self.model(imgs)
+        # pycoco evaluator
+        self.coco = None
+        self.iou_types = get_iou_types(self.model)
+        self.coco_evaluator = None
 
     def training_step(self, batch, batch_idx):
         # unpack batch
         images, targets = batch
 
-        # enable train mode
-        # self.model.train()
-
-        # fasterrcnn takes both images and targets for training
+        # compute loss
         loss_dict = self.model(images, targets)
+        loss_dict = {f"train/{key}": val for key, val in loss_dict.items()}
         loss = sum(loss_dict.values())
 
         # log everything
         self.log_dict(loss_dict)
         self.log("train/loss", loss)
 
-        return {"loss": loss, "log": loss_dict}
+        return loss
 
-    # def validation_step(self, batch, batch_idx):
-    #     # unpack batch
-    #     images, targets = batch
+    def on_validation_epoch_start(self):
+        if self.coco is None:
+            self.coco = get_coco_api_from_dataset(self.trainer.val_dataloaders[0].dataset)
 
-    #     # enable eval mode
-    #     # self.detector.eval()
+        # init coco evaluator
+        self.coco_evaluator = CocoEvaluator(self.coco, self.iou_types)
 
-    #     # make a prediction
-    #     preds = self.model(images)
+    def validation_step(self, batch, batch_idx):
+        # unpack batch
+        images, targets = batch
 
-    #     # compute validation loss
-    #     self.val_loss = torch.mean(
-    #         torch.stack(
-    #             [
-    #                 self.accuracy(
-    #                     target,
-    #                     pred["boxes"],
-    #                     iou_threshold=0.5,
-    #                 )
-    #                 for target, pred in zip(targets, preds)
-    #             ],
-    #         )
-    #     )
+        # compute metrics using pycocotools
+        outputs = self.model(images)
+        res = {target["image_id"].item(): output for target, output in zip(targets, outputs)}
+        self.coco_evaluator.update(res)
 
-    #     return self.val_loss
+        # compute validation loss
+        self.model.train()
+        loss_dict = self.model(images, targets)
+        loss_dict = {f"valid/{key}": val for key, val in loss_dict.items()}
+        self.model.eval()
 
-    # def accuracy(self, src_boxes, pred_boxes, iou_threshold=1.0):
-    #     """
-    #     The accuracy method is not the one used in the evaluator but very similar
-    #     """
-    #     total_gt = len(src_boxes)
-    #     total_pred = len(pred_boxes)
-    #     if total_gt > 0 and total_pred > 0:
+        return loss_dict
 
-    #         # Define the matcher and distance matrix based on iou
-    #         matcher = Matcher(iou_threshold, iou_threshold, allow_low_quality_matches=False)
-    #         match_quality_matrix = box_iou(src_boxes, pred_boxes)
+    def validation_epoch_end(self, outputs):
+        # accumulate all predictions
+        self.coco_evaluator.accumulate()
+        self.coco_evaluator.summarize()
 
-    #         results = matcher(match_quality_matrix)
+        YEET = {
+            "valid,bbox,AP,IoU=0.50:0.,area=all,maxDets=100": self.coco_evaluator.coco_eval["bbox"].stats[0],
+            "valid,bbox,AP,IoU=0.50,area=all,maxDets=100": self.coco_evaluator.coco_eval["bbox"].stats[1],
+            "valid,bbox,AP,IoU=0.75,area=all,maxDets=100": self.coco_evaluator.coco_eval["bbox"].stats[2],
+            "valid,bbox,AP,IoU=0.50:0.,area=small,maxDets=100": self.coco_evaluator.coco_eval["bbox"].stats[3],
+            "valid,bbox,AP,IoU=0.50:0.,area=medium,maxDets=100": self.coco_evaluator.coco_eval["bbox"].stats[4],
+            "valid,bbox,AP,IoU=0.50:0.,area=large,maxDets=100": self.coco_evaluator.coco_eval["bbox"].stats[5],
+            "valid,bbox,AR,IoU=0.50:0.,area=all,maxDets=1": self.coco_evaluator.coco_eval["bbox"].stats[6],
+            "valid,bbox,AR,IoU=0.50:0.,area=all,maxDets=10": self.coco_evaluator.coco_eval["bbox"].stats[7],
+            "valid,bbox,AR,IoU=0.50:0.,area=all,maxDets=100": self.coco_evaluator.coco_eval["bbox"].stats[8],
+            "valid,bbox,AR,IoU=0.50:0.,area=small,maxDets=100": self.coco_evaluator.coco_eval["bbox"].stats[9],
+            "valid,bbox,AR,IoU=0.50:0.,area=medium,maxDets=100": self.coco_evaluator.coco_eval["bbox"].stats[10],
+            "valid,bbox,AR,IoU=0.50:0.,area=large,maxDets=100": self.coco_evaluator.coco_eval["bbox"].stats[11],
+            "valid,segm,AP,IoU=0.50:0.,area=all,maxDets=100": self.coco_evaluator.coco_eval["segm"].stats[0],
+            "valid,segm,AP,IoU=0.50,area=all,maxDets=100": self.coco_evaluator.coco_eval["segm"].stats[1],
+            "valid,segm,AP,IoU=0.75,area=all,maxDets=100": self.coco_evaluator.coco_eval["segm"].stats[2],
+            "valid,segm,AP,IoU=0.50:0.,area=small,maxDets=100": self.coco_evaluator.coco_eval["segm"].stats[3],
+            "valid,segm,AP,IoU=0.50:0.,area=medium,maxDets=100": self.coco_evaluator.coco_eval["segm"].stats[4],
+            "valid,segm,AP,IoU=0.50:0.,area=large,maxDets=100": self.coco_evaluator.coco_eval["segm"].stats[5],
+            "valid,segm,AR,IoU=0.50:0.,area=all,maxDets=1": self.coco_evaluator.coco_eval["segm"].stats[6],
+            "valid,segm,AR,IoU=0.50:0.,area=all,maxDets=10": self.coco_evaluator.coco_eval["segm"].stats[7],
+            "valid,segm,AR,IoU=0.50:0.,area=all,maxDets=100": self.coco_evaluator.coco_eval["segm"].stats[8],
+            "valid,segm,AR,IoU=0.50:0.,area=small,maxDets=100": self.coco_evaluator.coco_eval["segm"].stats[9],
+            "valid,segm,AR,IoU=0.50:0.,area=medium,maxDets=100": self.coco_evaluator.coco_eval["segm"].stats[10],
+            "valid,segm,AR,IoU=0.50:0.,area=large,maxDets=100": self.coco_evaluator.coco_eval["segm"].stats[11],
+        }
 
-    #         true_positive = torch.count_nonzero(results.unique() != -1)
-    #         matched_elements = results[results > -1]
-
-    #         # in Matcher, a pred element can be matched only twice
-    #         false_positive = torch.count_nonzero(results == -1) + (
-    #             len(matched_elements) - len(matched_elements.unique())
-    #         )
-    #         false_negative = total_gt - true_positive
-
-    #         return true_positive / (true_positive + false_positive + false_negative)
-
-    #     elif total_gt == 0:
-    #         if total_pred > 0:
-    #             return torch.tensor(0.0).cuda()
-    #         else:
-    #             return torch.tensor(1.0).cuda()
-    #     elif total_gt > 0 and total_pred == 0:
-    #         return torch.tensor(0.0).cuda()
+        self.log_dict(YEET)
 
     def configure_optimizers(self):
         optimizer = torch.optim.SGD(

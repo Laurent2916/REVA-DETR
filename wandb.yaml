@@ -5,8 +5,6 @@ DIR_VALID_IMG:
 DIR_SPHERE:
   value: "/media/disk1/lfainsin/SPHERES/"
 
-FEATURES:
-  value: [8, 16, 32, 64]
 N_CHANNELS:
   value: 3
 N_CLASSES:
@@ -29,17 +27,12 @@ DEVICE:
 WORKERS:
   value: 16
 
-IMG_SIZE:
-  value: 512
-SPHERES:
-  value: 3
-
 EPOCHS:
   value: 10
 TRAIN_BATCH_SIZE:
-  value: 8
-VAL_BATCH_SIZE:
-  value: 0
+  value: 10
+VALID_BATCH_SIZE:
+  value: 2
 PREFETCH_FACTOR:
   value: 2
 

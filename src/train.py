@@ -26,7 +26,7 @@ if __name__ == "__main__":
     pl.seed_everything(wandb.config.SEED, workers=True)
 
     # Create Network
-    model = MRCNNModule(
+    module = MRCNNModule(
         hidden_layer_size=-1,
         n_classes=2,
     )
@@ -37,7 +37,7 @@ if __name__ == "__main__":
     # model.load_state_dict(state_dict)
 
     # log gradients and weights regularly
-    logger.watch(model.model, log="all")
+    logger.watch(module.model, log="all")
 
     # Create the dataloaders
     datamodule = Spheres()
@@ -51,14 +51,16 @@ if __name__ == "__main__":
         precision=wandb.config.PRECISION,
         logger=logger,
         log_every_n_steps=5,
-        # val_check_interval=100,
-        callbacks=[RichProgressBar(), ArtifactLog(), TableLog()],
+        val_check_interval=50,
+        callbacks=[RichProgressBar(), ArtifactLog()],
+        # callbacks=[RichProgressBar(), ArtifactLog(), TableLog()],
         # profiler="advanced",
         num_sanity_val_steps=0,
+        devices=[0],
     )
 
     # actually train the model
-    trainer.fit(model=model, datamodule=datamodule)
+    trainer.fit(model=module, datamodule=datamodule)
 
     # stop wandb
     wandb.run.finish()

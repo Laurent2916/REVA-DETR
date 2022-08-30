@@ -58,6 +58,7 @@ class RealDataset(Dataset):
         bboxes = torch.as_tensor(bboxes, dtype=torch.float32)
         labels = torch.ones((num_objs,), dtype=torch.int64)  # suppose there is only one class (id=1)
         masks = [mask for mask in masks]  # albumentations wants list of masks
+        # TODO: use masks = list(np.asarray(target["masks"])))
 
         if self.transforms is not None:
             # arrange transform data
