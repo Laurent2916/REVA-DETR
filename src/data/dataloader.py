@@ -19,12 +19,18 @@ class Spheres(pl.LightningDataModule):
     def train_dataloader(self):
         transforms = A.Compose(
             [
+                A.Flip(),
+                A.ColorJitter(),
+                A.ToGray(p=0.01),
+                A.GaussianBlur(),
+                A.MotionBlur(),
+                A.ISONoise(),
+                A.ImageCompression(),
                 A.Normalize(
                     mean=[0.485, 0.456, 0.406],
                     std=[0.229, 0.224, 0.225],
                     max_pixel_value=255,
-                ),  # [0, 255] -> [0.0, 1.0] normalized
-                # A.ToFloat(max_value=255),
+                ),  # [0, 255] -> coco (?) normalized
                 ToTensorV2(),  # HWC -> CHW
             ],
             bbox_params=A.BboxParams(
@@ -35,13 +41,11 @@ class Spheres(pl.LightningDataModule):
             ),
         )
 
-        dataset = RealDataset(root="/dev/shm/TEST_tmp_mrcnn/", transforms=transforms)
-        # dataset = Subset(dataset, list(range(len(dataset))))  # somehow this sometimes allows to better utilize the gpu
-        # dataset = Subset(dataset, list(range(20)))
+        dataset = RealDataset(root="/dev/shm/TRAIN/", transforms=transforms)
 
         return DataLoader(
             dataset,
-            shuffle=False,
+            shuffle=True,
             persistent_workers=True,
             prefetch_factor=wandb.config.PREFETCH_FACTOR,
             batch_size=wandb.config.TRAIN_BATCH_SIZE,
@@ -58,7 +62,6 @@ class Spheres(pl.LightningDataModule):
                     std=[0.229, 0.224, 0.225],
                     max_pixel_value=255,
                 ),  # [0, 255] -> [0.0, 1.0] normalized
-                # A.ToFloat(max_value=255),
                 ToTensorV2(),  # HWC -> CHW
             ],
             bbox_params=A.BboxParams(
@@ -69,9 +72,7 @@ class Spheres(pl.LightningDataModule):
             ),
         )
 
-        dataset = RealDataset(root="/dev/shm/TEST_tmp_mrcnn/", transforms=transforms)
-        # dataset = Subset(dataset, list(range(len(dataset))))  # somehow this sometimes allows to better utilize the gpu
-        dataset = Subset(dataset, list(range(10)))
+        dataset = RealDataset(root="/dev/shm/TEST/", transforms=transforms)
 
         return DataLoader(
             dataset,

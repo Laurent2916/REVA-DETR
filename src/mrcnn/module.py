@@ -59,10 +59,10 @@ class MRCNNModule(pl.LightningModule):
         loss_dict = self.model(images, targets)
         loss_dict = {f"train/{key}": val for key, val in loss_dict.items()}
         loss = sum(loss_dict.values())
+        loss_dict["train/loss"] = loss
 
         # log everything
         self.log_dict(loss_dict)
-        self.log("train/loss", loss)
 
         return loss
 
@@ -86,11 +86,16 @@ class MRCNNModule(pl.LightningModule):
         self.model.train()
         loss_dict = self.model(images, targets)
         loss_dict = {f"valid/{key}": val for key, val in loss_dict.items()}
+        loss_dict["valid/loss"] = sum(loss_dict.values())
         self.model.eval()
 
         return loss_dict
 
     def validation_epoch_end(self, outputs):
+        # log validation loss
+        loss_dict = {k: torch.stack([d[k] for d in outputs]).mean() for k in outputs[0].keys()}
+        self.log_dict(loss_dict)
+
         # accumulate all predictions
         self.coco_evaluator.accumulate()
         self.coco_evaluator.summarize()

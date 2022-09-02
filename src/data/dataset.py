@@ -28,10 +28,10 @@ class RealDataset(Dataset):
         mask = Image.open(mask_path).convert("L")
 
         # convert to numpy arrays
-        image = np.asarray(image)
-        mask = np.asarray(mask)
+        image = np.ascontiguousarray(image)
+        mask = np.ascontiguousarray(mask)
 
-        # resize images
+        # resize images, TODO: remove ?
         aug = self.res(image=image, mask=mask)
         image = aug["image"]
         mask = aug["mask"]
@@ -42,6 +42,7 @@ class RealDataset(Dataset):
 
         # split the color-encoded mask into a set of binary masks
         masks = mask == obj_ids[:, None, None]
+        masks = masks.astype(np.uint8)  # cast to uint8 for albumentations
 
         # create bboxes from masks (pascal format)
         num_objs = len(obj_ids)
@@ -54,11 +55,10 @@ class RealDataset(Dataset):
             ymax = np.max(pos[0])
             bboxes.append([xmin, ymin, xmax, ymax])
 
-        # convert arrays to tensors, TODO: check what albumentations wants, to reduce follow lines
-        bboxes = torch.as_tensor(bboxes, dtype=torch.float32)
-        labels = torch.ones((num_objs,), dtype=torch.int64)  # suppose there is only one class (id=1)
-        masks = [mask for mask in masks]  # albumentations wants list of masks
-        # TODO: use masks = list(np.asarray(target["masks"])))
+        # convert arrays for albumentations
+        bboxes = torch.as_tensor(bboxes, dtype=torch.int64)
+        labels = torch.ones((num_objs,), dtype=torch.int64)  # assume there is only one class (id=1)
+        masks = list(np.asarray(masks))
 
         if self.transforms is not None:
             # arrange transform data
@@ -70,20 +70,19 @@ class RealDataset(Dataset):
             }
             # apply transform
             augmented = self.transforms(**data)
-            # get augmented image and bboxes
+            # get augmented data
             image = augmented["image"]
             bboxes = augmented["bboxes"]
             labels = augmented["labels"]
-            # get masks
             masks = augmented["masks"]
 
-        bboxes = torch.as_tensor(bboxes, dtype=torch.float32)
-        labels = torch.as_tensor(labels, dtype=torch.int64)  # int64 requiered by torchvision maskrcnn
-        masks = torch.stack(masks)  # stack masks, wanted by maskrcnn from torchvision
+        bboxes = torch.as_tensor(bboxes, dtype=torch.int64)
+        labels = torch.as_tensor(labels, dtype=torch.int64)  # int64 required by torchvision maskrcnn
+        masks = torch.stack(masks)  # stack masks, required by torchvision maskrcnn
 
         area = (bboxes[:, 3] - bboxes[:, 1]) * (bboxes[:, 2] - bboxes[:, 0])
         image_id = torch.tensor([idx])
-        iscrowd = torch.zeros((num_objs,), dtype=torch.int64)  # suppose all instances are not crowd
+        iscrowd = torch.zeros((num_objs,), dtype=torch.int64)  # assume all instances are not crowd
 
         target = {
             "boxes": bboxes,

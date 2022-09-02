@@ -55,7 +55,7 @@ if __name__ == "__main__":
         callbacks=[RichProgressBar(), ArtifactLog()],
         # callbacks=[RichProgressBar(), ArtifactLog(), TableLog()],
         # profiler="advanced",
-        num_sanity_val_steps=0,
+        num_sanity_val_steps=3,
         devices=[0],
     )
 
