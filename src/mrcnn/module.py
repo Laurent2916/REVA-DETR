@@ -3,15 +3,13 @@
 import pytorch_lightning as pl
 import torch
 import torchvision
+import wandb
+from torchmetrics.detection.mean_ap import MeanAveragePrecision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import (
     MaskRCNN_ResNet50_FPN_Weights,
     MaskRCNNPredictor,
 )
-
-import wandb
-from utils.coco_eval import CocoEvaluator
-from utils.coco_utils import get_coco_api_from_dataset, get_iou_types
 
 
 def get_model_instance_segmentation(num_classes):
@@ -33,11 +31,10 @@ def get_model_instance_segmentation(num_classes):
 
 
 class MRCNNModule(pl.LightningModule):
-    def __init__(self, hidden_layer_size, n_classes):
+    def __init__(self, n_classes):
         super().__init__()
 
         # Hyperparameters
-        self.hidden_layers_size = hidden_layer_size
         self.n_classes = n_classes
 
         # log hyperparameters
@@ -46,10 +43,12 @@ class MRCNNModule(pl.LightningModule):
         # Network
         self.model = get_model_instance_segmentation(n_classes)
 
-        # pycoco evaluator
-        self.coco = None
-        self.iou_types = get_iou_types(self.model)
-        self.coco_evaluator = None
+        # onnx
+        self.example_input_array = torch.randn(1, 3, 1024, 1024, requires_grad=True)
+
+    def forward(self, imgs):
+        self.model.eval()
+        return self.model(imgs)
 
     def training_step(self, batch, batch_idx):
         # unpack batch
@@ -67,20 +66,17 @@ class MRCNNModule(pl.LightningModule):
         return loss
 
     def on_validation_epoch_start(self):
-        if self.coco is None:
-            self.coco = get_coco_api_from_dataset(self.trainer.val_dataloaders[0].dataset)
-
-        # init coco evaluator
-        self.coco_evaluator = CocoEvaluator(self.coco, self.iou_types)
+        self.metric = MeanAveragePrecision(iou_type="bbox")
 
     def validation_step(self, batch, batch_idx):
         # unpack batch
         images, targets = batch
 
-        # compute metrics using pycocotools
-        outputs = self.model(images)
-        res = {target["image_id"].item(): output for target, output in zip(targets, outputs)}
-        self.coco_evaluator.update(res)
+        preds = self.model(images)
+        for pred, target in zip(preds, targets):
+            pred["masks"] = pred["masks"].squeeze(1).bool()
+            target["masks"] = target["masks"].squeeze(1).bool()
+        self.metric.update(preds, targets)
 
         # compute validation loss
         self.model.train()
@@ -93,48 +89,22 @@ class MRCNNModule(pl.LightningModule):
 
     def validation_epoch_end(self, outputs):
         # log validation loss
-        loss_dict = {k: torch.stack([d[k] for d in outputs]).mean() for k in outputs[0].keys()}
+        loss_dict = {
+            k: torch.stack([d[k] for d in outputs]).mean() for k in outputs[0].keys()
+        }  # TODO: update un dict object
         self.log_dict(loss_dict)
 
-        # accumulate all predictions
-        self.coco_evaluator.accumulate()
-        self.coco_evaluator.summarize()
-
-        YEET = {
-            "valid,bbox,AP,IoU=0.50:0.,area=all,maxDets=100": self.coco_evaluator.coco_eval["bbox"].stats[0],
-            "valid,bbox,AP,IoU=0.50,area=all,maxDets=100": self.coco_evaluator.coco_eval["bbox"].stats[1],
-            "valid,bbox,AP,IoU=0.75,area=all,maxDets=100": self.coco_evaluator.coco_eval["bbox"].stats[2],
-            "valid,bbox,AP,IoU=0.50:0.,area=small,maxDets=100": self.coco_evaluator.coco_eval["bbox"].stats[3],
-            "valid,bbox,AP,IoU=0.50:0.,area=medium,maxDets=100": self.coco_evaluator.coco_eval["bbox"].stats[4],
-            "valid,bbox,AP,IoU=0.50:0.,area=large,maxDets=100": self.coco_evaluator.coco_eval["bbox"].stats[5],
-            "valid,bbox,AR,IoU=0.50:0.,area=all,maxDets=1": self.coco_evaluator.coco_eval["bbox"].stats[6],
-            "valid,bbox,AR,IoU=0.50:0.,area=all,maxDets=10": self.coco_evaluator.coco_eval["bbox"].stats[7],
-            "valid,bbox,AR,IoU=0.50:0.,area=all,maxDets=100": self.coco_evaluator.coco_eval["bbox"].stats[8],
-            "valid,bbox,AR,IoU=0.50:0.,area=small,maxDets=100": self.coco_evaluator.coco_eval["bbox"].stats[9],
-            "valid,bbox,AR,IoU=0.50:0.,area=medium,maxDets=100": self.coco_evaluator.coco_eval["bbox"].stats[10],
-            "valid,bbox,AR,IoU=0.50:0.,area=large,maxDets=100": self.coco_evaluator.coco_eval["bbox"].stats[11],
-            "valid,segm,AP,IoU=0.50:0.,area=all,maxDets=100": self.coco_evaluator.coco_eval["segm"].stats[0],
-            "valid,segm,AP,IoU=0.50,area=all,maxDets=100": self.coco_evaluator.coco_eval["segm"].stats[1],
-            "valid,segm,AP,IoU=0.75,area=all,maxDets=100": self.coco_evaluator.coco_eval["segm"].stats[2],
-            "valid,segm,AP,IoU=0.50:0.,area=small,maxDets=100": self.coco_evaluator.coco_eval["segm"].stats[3],
-            "valid,segm,AP,IoU=0.50:0.,area=medium,maxDets=100": self.coco_evaluator.coco_eval["segm"].stats[4],
-            "valid,segm,AP,IoU=0.50:0.,area=large,maxDets=100": self.coco_evaluator.coco_eval["segm"].stats[5],
-            "valid,segm,AR,IoU=0.50:0.,area=all,maxDets=1": self.coco_evaluator.coco_eval["segm"].stats[6],
-            "valid,segm,AR,IoU=0.50:0.,area=all,maxDets=10": self.coco_evaluator.coco_eval["segm"].stats[7],
-            "valid,segm,AR,IoU=0.50:0.,area=all,maxDets=100": self.coco_evaluator.coco_eval["segm"].stats[8],
-            "valid,segm,AR,IoU=0.50:0.,area=small,maxDets=100": self.coco_evaluator.coco_eval["segm"].stats[9],
-            "valid,segm,AR,IoU=0.50:0.,area=medium,maxDets=100": self.coco_evaluator.coco_eval["segm"].stats[10],
-            "valid,segm,AR,IoU=0.50:0.,area=large,maxDets=100": self.coco_evaluator.coco_eval["segm"].stats[11],
-        }
-
-        self.log_dict(YEET)
+        # log metrics
+        metric_dict = self.metric.compute()
+        metric_dict = {f"valid/{key}": val for key, val in metric_dict.items()}
+        self.log_dict(metric_dict)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.SGD(
+        optimizer = torch.optim.Adam(
             self.parameters(),
             lr=wandb.config.LEARNING_RATE,
-            momentum=wandb.config.MOMENTUM,
-            weight_decay=wandb.config.WEIGHT_DECAY,
+            # momentum=wandb.config.MOMENTUM,
+            # weight_decay=wandb.config.WEIGHT_DECAY,
         )
 
         # scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(

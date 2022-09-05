@@ -1,8 +1,5 @@
-import numpy as np
-import torch
-from pytorch_lightning.callbacks import Callback
-
 import wandb
+from pytorch_lightning.callbacks import Callback
 
 columns = [
     "ID",
@@ -64,34 +61,3 @@ class TableLog(Callback):
                 )
             }
         )
-
-
-class ArtifactLog(Callback):
-    # def on_fit_start(self, trainer, pl_module):
-    #     self.best = 1
-
-    def on_train_epoch_end(self, trainer, pl_module):
-        # create checkpoint
-        torch.save(pl_module.state_dict(), "checkpoints/model.pth")
-
-    # def on_validation_epoch_start(self, trainer, pl_module):
-    #     self.dices = []
-
-    # def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-    #     # unpacking
-    #     metrics, _ = outputs
-    #     self.dices.append(metrics["dice"].cpu())
-
-    # def on_validation_epoch_end(self, trainer, pl_module):
-    #     dice = np.mean(self.dices)
-
-    #     if dice < self.best:
-    #         self.best = dice
-
-    #         # create checkpoint
-    #         trainer.save_checkpoint("checkpoints/model.ckpt")
-
-    #         # log artifact
-    #         artifact = wandb.Artifact("ckpt", type="model")
-    #         artifact.add_file("checkpoints/model.ckpt")
-    #         wandb.run.log_artifact(artifact)

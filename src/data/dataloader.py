@@ -1,9 +1,8 @@
 import albumentations as A
 import pytorch_lightning as pl
-from albumentations.pytorch import ToTensorV2
-from torch.utils.data import DataLoader, Subset
-
 import wandb
+from albumentations.pytorch import ToTensorV2
+from torch.utils.data import DataLoader
 
 from .dataset import RealDataset
 
@@ -20,17 +19,18 @@ class Spheres(pl.LightningDataModule):
         transforms = A.Compose(
             [
                 A.Flip(),
-                A.ColorJitter(),
-                A.ToGray(p=0.01),
-                A.GaussianBlur(),
-                A.MotionBlur(),
-                A.ISONoise(),
-                A.ImageCompression(),
-                A.Normalize(
-                    mean=[0.485, 0.456, 0.406],
-                    std=[0.229, 0.224, 0.225],
-                    max_pixel_value=255,
-                ),  # [0, 255] -> coco (?) normalized
+                # A.ColorJitter(),
+                # A.ToGray(p=0.01),
+                # A.GaussianBlur(),
+                # A.MotionBlur(),
+                # A.ISONoise(),
+                # A.ImageCompression(),
+                # A.Normalize(
+                #     mean=[0.485, 0.456, 0.406],
+                #     std=[0.229, 0.224, 0.225],
+                #     max_pixel_value=255,
+                # ),  # [0, 255] -> coco (?) normalized
+                A.ToFloat(max_value=255),
                 ToTensorV2(),  # HWC -> CHW
             ],
             bbox_params=A.BboxParams(
@@ -57,11 +57,12 @@ class Spheres(pl.LightningDataModule):
     def val_dataloader(self):
         transforms = A.Compose(
             [
-                A.Normalize(
-                    mean=[0.485, 0.456, 0.406],
-                    std=[0.229, 0.224, 0.225],
-                    max_pixel_value=255,
-                ),  # [0, 255] -> [0.0, 1.0] normalized
+                # A.Normalize(
+                #     mean=[0.485, 0.456, 0.406],
+                #     std=[0.229, 0.224, 0.225],
+                #     max_pixel_value=255,
+                # ),  # [0, 255] -> [0.0, 1.0] normalized
+                A.ToFloat(max_value=255),
                 ToTensorV2(),  # HWC -> CHW
             ],
             bbox_params=A.BboxParams(

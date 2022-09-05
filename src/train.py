@@ -1,43 +1,52 @@
 import logging
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import RichProgressBar
+import torch
+import wandb
+from pytorch_lightning.callbacks import ModelCheckpoint, RichProgressBar
 from pytorch_lightning.loggers import WandbLogger
 
-import wandb
 from data import Spheres
 from mrcnn import MRCNNModule
-from utils import ArtifactLog, TableLog
 
 if __name__ == "__main__":
     # setup logging
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(levelname)s: %(message)s",
+    )
 
     # setup wandb
     logger = WandbLogger(
         project="Mask R-CNN",
         config="wandb.yaml",
+        save_dir="/tmp/",
+        log_model="all",
         settings=wandb.Settings(
             code_dir="./src/",
         ),
     )
 
     # seed random generators
-    pl.seed_everything(wandb.config.SEED, workers=True)
+    pl.seed_everything(
+        seed=wandb.config.SEED,
+        workers=True,
+    )
 
     # Create Network
     module = MRCNNModule(
-        hidden_layer_size=-1,
         n_classes=2,
     )
 
     # load checkpoint
-    # state_dict = torch.load("checkpoints/synth.pth")
-    # state_dict = dict([(f"model.{key}", value) for key, value in state_dict.items()])
-    # model.load_state_dict(state_dict)
+    # module.load_state_dict(torch.load()["state_dict"])
+    # module.load_from_checkpoint("/tmp/model.ckpt")
 
     # log gradients and weights regularly
-    logger.watch(module.model, log="all")
+    logger.watch(
+        model=module.model,
+        log="all",
+    )
 
     # Create the dataloaders
     datamodule = Spheres()
@@ -52,15 +61,17 @@ if __name__ == "__main__":
         logger=logger,
         log_every_n_steps=5,
         val_check_interval=50,
-        callbacks=[RichProgressBar(), ArtifactLog()],
-        # callbacks=[RichProgressBar(), ArtifactLog(), TableLog()],
+        callbacks=[
+            ModelCheckpoint(monitor="valid/loss", mode="min"),
+            RichProgressBar(),
+        ],
         # profiler="advanced",
         num_sanity_val_steps=3,
-        devices=[0],
+        devices=[1],
     )
 
     # actually train the model
     trainer.fit(model=module, datamodule=datamodule)
 
     # stop wandb
-    wandb.run.finish()
+    wandb.run.finish()  # type: ignore

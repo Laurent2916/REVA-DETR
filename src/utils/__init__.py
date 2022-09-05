@@ -1,2 +1,2 @@
-from .callback import ArtifactLog, TableLog
+from .callback import TableLog
 from .paste import RandomPaste

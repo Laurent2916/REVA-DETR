@@ -14,14 +14,17 @@ torch = "^1.12.1"
 torchmetrics = "^0.9.3"
 torchvision = "^0.13.1"
 wandb = "^0.13.2"
+rich = "^12.5.1"
+pycocotools = "^2.0.4"
 
 [tool.poetry.dev-dependencies]
-black = {extras = ["jupyter"], version = "^22.8.0"}
+black = { extras = ["jupyter"], version = "^22.8.0" }
 ipykernel = "^6.15.2"
 isort = "^5.10.1"
 matplotlib = "^3.5.3"
 mypy = "^0.971"
 onnxruntime = "^1.12.1"
+onnxruntime-gpu = "^1.12.1"
 pre-commit = "^2.20.0"
 
 [build-system]

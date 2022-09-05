@@ -1,9 +1,9 @@
-DIR_TRAIN_IMG:
-  value: "/media/disk1/lfainsin/BACKGROUND/"
-DIR_VALID_IMG:
-  value: "/media/disk1/lfainsin/TEST_batched/"
-DIR_SPHERE:
-  value: "/media/disk1/lfainsin/SPHERES/"
+# DIR_TRAIN_IMG:
+#   value: "/media/disk1/lfainsin/BACKGROUND/"
+# DIR_VALID_IMG:
+#   value: "/media/disk1/lfainsin/TEST_batched/"
+# DIR_SPHERE:
+#   value: "/media/disk1/lfainsin/SPHERES/"
 
 N_CHANNELS:
   value: 3
@@ -28,7 +28,7 @@ WORKERS:
   value: 16
 
 EPOCHS:
-  value: 10
+  value: 50
 TRAIN_BATCH_SIZE:
   value: 10
 VALID_BATCH_SIZE:
@@ -37,7 +37,7 @@ PREFETCH_FACTOR:
   value: 2
 
 LEARNING_RATE:
-  value: 0.005
+  value: 0.0005
 WEIGHT_DECAY:
   value: 0.0005
 MOMENTUM:
