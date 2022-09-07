@@ -28,7 +28,7 @@ WORKERS:
   value: 16
 
 EPOCHS:
-  value: 50
+  value: 100
 TRAIN_BATCH_SIZE:
   value: 10
 VALID_BATCH_SIZE:
