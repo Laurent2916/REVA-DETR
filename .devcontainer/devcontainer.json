@@ -1,6 +1,6 @@
 {
   "name": "devcontainer-example",
   "dockerComposeFile": "docker-compose.yml",
-  "service": "development",
+  "service": "dev",
   "workspaceFolder": "/workspace"
 }
