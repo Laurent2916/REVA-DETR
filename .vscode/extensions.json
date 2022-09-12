@@ -4,6 +4,7 @@
     "ms-azuretools.vscode-docker",
     "editorconfig.editorconfig",
     "njpwerner.autodocstring",
-    "ms-python.python"
+    "ms-python.python",
+    "ms-toolsai.jupyter"
   ]
 }

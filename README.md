@@ -11,8 +11,8 @@ sphereDetect is a simple neural network, based on a Mask R-CNN, to detect spheri
 - [PyTorch](https://pytorch.org/)
 - [TorchVision](https://pytorch.org/vision/stable/index.html)
 - [PyTorch Lightning](https://www.pytorchlightning.ai/)
-- [PyTorch Metrics](https://torchmetrics.readthedocs.io/en/stable/)
 - [PyTorch Lightning Bolts](https://www.pytorchlightning.ai/bolts)
+- [PyTorch Metrics](https://torchmetrics.readthedocs.io/en/stable/)
 - [ONNXRuntime](https://onnxruntime.ai/)
 
 ### Tools
@@ -26,12 +26,49 @@ sphereDetect is a simple neural network, based on a Mask R-CNN, to detect spheri
     - [Remote container](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
     - [EditorConfig](https://marketplace.visualstudio.com/items?itemName=EditorConfig.EditorConfig)
     - [Docker](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker)
+    - [Jupyter](https://marketplace.visualstudio.com/items?itemName=ms-toolsai.jupyter)
 
-## Getting started (with docker)
+## Getting started (with docker and vscode)
 
-TODO
+### Requirements
+
+- [Git](https://git-scm.com/)
+- [Docker](https://www.docker.com/)
+- [NVIDIA-Docker](https://github.com/NVIDIA/nvidia-docker)
+
+### Installation
+
+Clone the repository:
+```bash
+git clone git@git.inpt.fr:fainsil/pytorch-reva.git
+```
+
+Start VS Code:
+```bash
+vscode pytorch-reva
+```
+
+Install the [Remote Development extension pack](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack). \
+Reopen the workspace in [devcontainer mode](https://code.visualstudio.com/docs/remote/containers).
+
+### Usage
+
+Configure [Weights & Biases (local) server](https://docs.wandb.ai/guides/self-hosted/local) at <http://localhost:8080>, and login:
+```bash
+wandb login --host http://localhost:8080
+```
+
+Press `F5` to launch `src/train.py` in debug mode (with breakpoints, slower) \
+or press `Ctrl+F5` to launch `src/train.py` in release mode.
 
 ## Getting started (without docker)
+
+### Requirements
+
+- [Git](https://git-scm.com/)
+- [Poetry](https://python-poetry.org/)
+- [Python](https://www.python.org/)
+- [Docker](https://www.docker.com/) (if local wandb server used)
 
 ### Installation
 
@@ -53,10 +90,10 @@ Activate python environment:
 poetry shell
 ```
 
-Start and configure Weights & Biases local server:
+Configure [Weights & Biases (local) server](https://docs.wandb.ai/guides/self-hosted/local), and login:
 ```bash
 wandb server start
-wandb login
+wandb login --host http://localhost:8080
 ```
 
 Start a training:
@@ -71,5 +108,5 @@ See [`LICENSE`](https://git.inpt.fr/fainsil/pytorch-reva/-/blob/master/LICENSE) 
 
 ## Contact
 
-Laurent Fainsin _[fɛ̃zɛ̃]_ \
+Laurent Fainsin _[loʁɑ̃ fɛ̃zɛ̃]_ \
 \<[laurent@fainsin.bzh](mailto:laurent@fainsin.bzh)\>
