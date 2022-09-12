@@ -4,7 +4,9 @@
   "editor.formatOnSave": true,
   "python.linting.enabled": true,
   "python.linting.lintOnSave": true,
+  "python.linting.flake8Enabled": true,
   "python.linting.mypyEnabled": true,
+  "python.linting.banditEnabled": true,
   "jupyter.debugJustMyCode": false,
   "[python]": {
     "editor.codeActionsOnSave": {
