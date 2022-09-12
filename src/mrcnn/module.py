@@ -15,7 +15,10 @@ from torchvision.models.detection.mask_rcnn import (
 
 def get_model_instance_segmentation(num_classes):
     # load an instance segmentation model pre-trained on COCO
-    model = torchvision.models.detection.maskrcnn_resnet50_fpn(weights=MaskRCNN_ResNet50_FPN_Weights.DEFAULT)
+    model = torchvision.models.detection.maskrcnn_resnet50_fpn(
+        weights=MaskRCNN_ResNet50_FPN_Weights.DEFAULT,
+        box_detections_per_img=10,  # cap numbers of detections, else memory explosion
+    )
 
     # get number of input features for the classifier
     in_features = model.roi_heads.box_predictor.cls_score.in_features
@@ -97,20 +100,22 @@ class MRCNNModule(pl.LightningModule):
         optimizer = torch.optim.Adam(
             self.parameters(),
             lr=wandb.config.LEARNING_RATE,
-            momentum=wandb.config.MOMENTUM,
-            weight_decay=wandb.config.WEIGHT_DECAY,
+            # momentum=wandb.config.MOMENTUM,
+            # weight_decay=wandb.config.WEIGHT_DECAY,
         )
 
-        scheduler = LinearWarmupCosineAnnealingLR(
-            optimizer,
-            warmup_epochs=10,
-            max_epochs=40,
-        )
+        # scheduler = LinearWarmupCosineAnnealingLR(
+        #     optimizer,
+        #     warmup_epochs=1,
+        #     max_epochs=30,
+        # )
 
         return {
             "optimizer": optimizer,
-            "lr_scheduler": {
-                "scheduler": scheduler,
-                "monitor": "map",
-            },
+            # "lr_scheduler": {
+            #     "scheduler": scheduler,
+            #     "interval": "step",
+            #     "frequency": 10,
+            #     "monitor": "bbox/map",
+            # },
         }
