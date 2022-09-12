@@ -47,7 +47,7 @@ def get_model_instance_segmentation(n_classes: int) -> MaskRCNN:
 
 
 class MRCNNModule(pl.LightningModule):
-    """Mask R-CNN Pytorch Lightning Module encapsulating commong PyTorch functions."""
+    """Mask R-CNN Pytorch Lightning Module, encapsulating common PyTorch functions."""
 
     def __init__(self, n_classes: int) -> None:
         """Constructor, build model, save hyperparameters.

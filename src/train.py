@@ -1,4 +1,4 @@
-import logging
+"""Main script, to be launched to start the fine tuning of the neural network."""
 
 import pytorch_lightning as pl
 import wandb
@@ -6,24 +6,16 @@ from pytorch_lightning.callbacks import (
     EarlyStopping,
     LearningRateMonitor,
     ModelCheckpoint,
-    ModelPruning,
-    QuantizationAwareTraining,
     RichModelSummary,
     RichProgressBar,
 )
 from pytorch_lightning.loggers import WandbLogger
 
 from data import Spheres
-from mrcnn import MRCNNModule
+from modules import MRCNNModule
 from utils.callback import TableLog
 
 if __name__ == "__main__":
-    # setup logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(levelname)s: %(message)s",
-    )
-
     # setup wandb
     logger = WandbLogger(
         project="Mask R-CNN",

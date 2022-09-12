@@ -1,8 +1,10 @@
+"""Pytorch Lightning DataModules."""
+
 import albumentations as A
 import pytorch_lightning as pl
 import wandb
 from albumentations.pytorch import ToTensorV2
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader
 
 from .dataset import LabeledDataset, RealDataset
 
@@ -12,10 +14,14 @@ def collate_fn(batch):
 
 
 class Spheres(pl.LightningDataModule):
-    def __init__(self):
-        super().__init__()
+    """Pytorch Lightning DataModule, encapsulating common PyTorch functions."""
 
-    def train_dataloader(self):
+    def train_dataloader(self) -> DataLoader:
+        """PyTorch training Dataloader.
+
+        Returns:
+            DataLoader: the training dataloader
+        """
         transforms = A.Compose(
             [
                 # A.Flip(),
@@ -40,7 +46,7 @@ class Spheres(pl.LightningDataModule):
             ),
         )
 
-        dataset = LabeledDataset("/dev/shm/TRAIN/", transforms)
+        dataset = LabeledDataset(image_dir="/dev/shm/TRAIN/", transforms=transforms)
         # dataset = Subset(dataset, range(6 * 200))  # subset for debugging purpose
         # dataset = Subset(dataset, [0] * 320)  # overfit test
 
@@ -55,7 +61,12 @@ class Spheres(pl.LightningDataModule):
             collate_fn=collate_fn,
         )
 
-    def val_dataloader(self):
+    def val_dataloader(self) -> DataLoader:
+        """PyTorch validation Dataloader.
+
+        Returns:
+            DataLoader: the validation dataloader
+        """
         transforms = A.Compose(
             [
                 A.Normalize(

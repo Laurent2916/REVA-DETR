@@ -1,3 +1,5 @@
+"""Pytorch Datasets."""
+
 import os
 from pathlib import Path
 
@@ -9,14 +11,14 @@ from torch.utils.data import Dataset
 
 
 class SyntheticDataset(Dataset):
-    def __init__(self, image_dir, transform):
+    def __init__(self, image_dir: str, transform: A.Compose) -> None:
         self.images = list(Path(image_dir).glob("**/*.jpg"))
         self.transform = transform
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.images)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int):
         # open and convert image
         image = np.ascontiguousarray(
             Image.open(
@@ -40,7 +42,7 @@ class SyntheticDataset(Dataset):
 
 
 class RealDataset(Dataset):
-    def __init__(self, root, transforms=None):
+    def __init__(self, root, transforms=None) -> None:
         self.root = root
         self.transforms = transforms
 
@@ -50,7 +52,10 @@ class RealDataset(Dataset):
 
         self.res = A.LongestMaxSize(max_size=1024)
 
-    def __getitem__(self, idx):
+    def __len__(self) -> int:
+        return len(self.imgs)
+
+    def __getitem__(self, idx: int):
         # create paths from ids
         image_path = os.path.join(self.root, "images", self.imgs[idx])
         mask_path = os.path.join(self.root, "masks", self.masks[idx])
@@ -127,19 +132,16 @@ class RealDataset(Dataset):
 
         return image, target
 
-    def __len__(self):
-        return len(self.imgs)
-
 
 class LabeledDataset(Dataset):
-    def __init__(self, image_dir, transforms):
+    def __init__(self, image_dir, transforms) -> None:
         self.images = list(Path(image_dir).glob("**/*.jpg"))
         self.transforms = transforms
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.images)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int):
         # open and convert image
         image = np.ascontiguousarray(
             Image.open(self.images[idx]).convert("RGB"),
