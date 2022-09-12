@@ -2,9 +2,9 @@ import albumentations as A
 import pytorch_lightning as pl
 import wandb
 from albumentations.pytorch import ToTensorV2
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 
-from .dataset import RealDataset
+from .dataset import LabeledDataset, RealDataset
 
 
 def collate_fn(batch):
@@ -18,13 +18,13 @@ class Spheres(pl.LightningDataModule):
     def train_dataloader(self):
         transforms = A.Compose(
             [
-                A.Flip(),
-                A.ColorJitter(),
-                A.ToGray(p=0.01),
-                A.GaussianBlur(),
-                A.MotionBlur(),
-                A.ISONoise(),
-                A.ImageCompression(),
+                # A.Flip(),
+                # A.ColorJitter(),
+                # A.ToGray(p=0.01),
+                # A.GaussianBlur(),
+                # A.MotionBlur(),
+                # A.ISONoise(),
+                # A.ImageCompression(),
                 A.Normalize(
                     mean=[0.485, 0.456, 0.406],
                     std=[0.229, 0.224, 0.225],
@@ -40,7 +40,9 @@ class Spheres(pl.LightningDataModule):
             ),
         )
 
-        dataset = RealDataset(root="/dev/shm/TRAIN/", transforms=transforms)
+        dataset = LabeledDataset("/dev/shm/TRAIN/", transforms)
+        # dataset = Subset(dataset, range(6 * 200))  # subset for debugging purpose
+        # dataset = Subset(dataset, [0] * 320)  # overfit test
 
         return DataLoader(
             dataset,
