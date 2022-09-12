@@ -24,7 +24,7 @@ class RandomPaste(A.DualTransform):
         self,
         nb,
         image_dir,
-        scale_range=(0.05, 0.5),
+        scale_range=(0.02, 0.3),
         always_apply=True,
         p=1.0,
     ):

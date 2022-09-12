@@ -28,17 +28,17 @@ WORKERS:
   value: 16
 
 EPOCHS:
-  value: 100
+  value: 50
 TRAIN_BATCH_SIZE:
-  value: 10
+  value: 6
 VALID_BATCH_SIZE:
   value: 2
 PREFETCH_FACTOR:
   value: 2
 
 LEARNING_RATE:
-  value: 0.0005
+  value: 0.001
 WEIGHT_DECAY:
-  value: 0.0005
+  value: 0.0001
 MOMENTUM:
   value: 0.9

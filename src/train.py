@@ -47,7 +47,6 @@ if __name__ == "__main__":
     )
 
     # load checkpoint
-    # module.load_state_dict(torch.load()["state_dict"])
     # module.load_from_checkpoint("/tmp/model.ckpt")
 
     # log gradients and weights regularly
@@ -68,10 +67,10 @@ if __name__ == "__main__":
         precision=wandb.config.PRECISION,
         logger=logger,
         log_every_n_steps=5,
-        val_check_interval=50,
+        val_check_interval=200,
         callbacks=[
-            EarlyStopping(monitor="valid/map", mode="max", patience=10, min_delta=0.01),
-            ModelCheckpoint(monitor="valid/map", mode="max"),
+            EarlyStopping(monitor="valid/bbox/map", mode="max", patience=10, min_delta=0.01),
+            ModelCheckpoint(monitor="valid/bbox/map", mode="max"),
             # ModelPruning("l1_unstructured", amount=0.5),
             LearningRateMonitor(log_momentum=True),
             RichModelSummary(max_depth=2),
