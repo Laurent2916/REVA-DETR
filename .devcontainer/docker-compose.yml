@@ -1,18 +1,6 @@
 version: "3"
 
 services:
-
-  # development container
-  dev:
-    container_name: dev
-    build:
-      context: .
-      dockerfile: Dockerfile
-    volumes:
-      - ..:/workspace
-    stdin_open: true
-    # network_mode: service:wandb
-
   # wandb dashboard
   wandb:
     hostname: wandb-local
@@ -23,3 +11,20 @@ services:
     ports:
       - 8080:8080
     restart: unless-stopped
+
+  # development container
+  dev:
+    container_name: dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/workspace
+    stdin_open: true
+    network_mode: service:wandb
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities:
+                - gpu
