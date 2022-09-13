@@ -49,6 +49,7 @@ vscode pytorch-reva
 ```
 
 Install the [Remote Development extension pack](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack). \
+Modify variables `UID` and `GID` in [`.devcontainer/Dockerfile`](https://git.inpt.fr/fainsil/pytorch-reva/-/blob/master/.devcontainer/Dockerfile#L6) if necessary.
 Reopen the workspace in [devcontainer mode](https://code.visualstudio.com/docs/remote/containers).
 
 ### Usage
