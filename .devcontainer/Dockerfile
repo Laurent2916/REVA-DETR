@@ -1,12 +1,11 @@
-FROM python:3
+FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu20.04
 
-# WORKDIR /workspace
+WORKDIR /workspace
 
-# RUN pip install --upgrade pip --no-input
-# RUN curl -sSL https://install.python-poetry.org | python3 -
+COPY library-scripts/*.sh library-scripts/*.env /tmp/library-scripts/
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive UID=1000 GID=1000 \
+    && /bin/bash /tmp/library-scripts/common-debian.sh \
+    && apt-get install -y python3 python3-pip && pip install --upgrade pip --no-input \
+    && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/* /tmp/library-scripts
 
-# RUN echo 'export PATH="$PATH:/root/.local/bin"' >> /root/.bashrc
-# RUN echo '/root/.local/bin/poetry install --no-interaction' >> /root/.bashrc
-# RUN echo '/root/.local/bin/poetry shell' >> /root/.bashrc
-
-# SHELL ["/bin/bash", "-ec"]
+RUN su - vscode -c "curl -sSL https://install.python-poetry.org | python3 -"

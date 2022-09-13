@@ -5,20 +5,21 @@ services:
   # development container
   dev:
     container_name: dev
-    hostname: dev
     build:
       context: .
       dockerfile: Dockerfile
     volumes:
       - ..:/workspace
     stdin_open: true
-  
-  # # wandb dashboard
-  # wandb:
-  #   image: wandb/local
-  #   container_name: wandb-local
-  #   hostname: wandb-local
-  #   volumes:
-  #     - ./wandb-local/:/vol
-  #   ports:
-  #     - 8080:8080
+    # network_mode: service:wandb
+
+  # wandb dashboard
+  wandb:
+    hostname: wandb-local
+    container_name: wandb-local
+    image: wandb/local
+    volumes:
+      - ./wandb-local/:/vol
+    ports:
+      - 8080:8080
+    restart: unless-stopped

@@ -1,5 +1,6 @@
 # Personnal ignores
 wandb/
+wandb-local/
 lightning_logs/
 
 checkpoints/

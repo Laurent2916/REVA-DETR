@@ -1,6 +1,11 @@
 {
-  "name": "devcontainer-example",
+  "name": "sphereDetect-dev",
   "dockerComposeFile": "docker-compose.yml",
   "service": "dev",
-  "workspaceFolder": "/workspace"
+  "remoteUser": "vscode",
+  "workspaceFolder": "/workspace",
+  "forwardPorts": [
+    8080
+  ],
+  "postAttachCommand": "poetry install --with all"
 }
