@@ -1,17 +1,6 @@
 version: "3"
 
 services:
-  # wandb dashboard
-  wandb:
-    hostname: wandb-local
-    container_name: wandb-local
-    image: wandb/local
-    volumes:
-      - ./wandb-local/:/vol
-    ports:
-      - 8080:8080
-    restart: unless-stopped
-
   # development container
   dev:
     container_name: dev
@@ -28,3 +17,12 @@ services:
           devices:
             - capabilities:
                 - gpu
+
+  # wandb dashboard
+  wandb:
+    hostname: wandb-local
+    container_name: wandb-local
+    image: wandb/local
+    ports:
+      - 8080:8080
+    restart: unless-stopped
