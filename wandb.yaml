@@ -1,7 +1,7 @@
-# DIR_TRAIN_IMG:
-#   value: "/media/disk1/lfainsin/BACKGROUND/"
-# DIR_VALID_IMG:
-#   value: "/media/disk1/lfainsin/TEST_batched/"
+DIR_TRAIN_IMG:
+  value: "/media/disk1/lfainsin/TRAIN_prerender/"
+DIR_VALID_IMG:
+  value: "/media/disk1/lfainsin/TEST_tmp_mrcnn/"
 # DIR_SPHERE:
 #   value: "/media/disk1/lfainsin/SPHERES/"
 

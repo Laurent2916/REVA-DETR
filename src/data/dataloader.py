@@ -46,7 +46,8 @@ class Spheres(pl.LightningDataModule):
             ),
         )
 
-        dataset = LabeledDataset(image_dir="/dev/shm/TRAIN/", transforms=transforms)
+        # dataset = LabeledDataset(image_dir="/dev/shm/TRAIN/", transforms=transforms)
+        dataset = LabeledDataset(image_dir=wandb.config.DIR_TRAIN_IMG, transforms=transforms)
         # dataset = Subset(dataset, range(6 * 200))  # subset for debugging purpose
         # dataset = Subset(dataset, [0] * 320)  # overfit test
 
@@ -84,7 +85,8 @@ class Spheres(pl.LightningDataModule):
             ),
         )
 
-        dataset = RealDataset(root="/dev/shm/TEST/", transforms=transforms)
+        # dataset = RealDataset(root="/dev/shm/TEST/", transforms=transforms)
+        dataset = RealDataset(root=wandb.config.DIR_VALID_IMG, transforms=transforms)
 
         return DataLoader(
             dataset,
