@@ -164,6 +164,7 @@ class LabeledDataset(Dataset):
         # create bboxes from masks (pascal format)
         num_objs = len(obj_ids)
         bboxes = []
+        labels = []
         for i in range(num_objs):
             pos = np.where(masks[i])
             xmin = np.min(pos[1])
@@ -171,10 +172,11 @@ class LabeledDataset(Dataset):
             ymin = np.min(pos[0])
             ymax = np.max(pos[0])
             bboxes.append([xmin, ymin, xmax, ymax])
+            labels.append(2 if mask[(ymax + ymin) // 2, (xmax + xmin) // 2] > 127 else 1)
 
         # convert arrays for albumentations
         bboxes = torch.as_tensor(bboxes, dtype=torch.int64)
-        labels = torch.ones((num_objs,), dtype=torch.int64)  # assume there is only one class (id=1)
+        labels = torch.as_tensor(labels, dtype=torch.int64)
         masks = list(np.asarray(masks))
 
         if self.transforms is not None:

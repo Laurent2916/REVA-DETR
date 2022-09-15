@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     # Create Network
     module = MRCNNModule(
-        n_classes=2,
+        n_classes=3,
     )
 
     # load checkpoint

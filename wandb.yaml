@@ -1,5 +1,5 @@
 DIR_TRAIN_IMG:
-  value: "/media/disk1/lfainsin/TRAIN_prerender/"
+  value: "/media/disk1/lfainsin/TRAIN_prerender_old/"
 DIR_VALID_IMG:
   value: "/media/disk1/lfainsin/TEST_tmp_mrcnn/"
 # DIR_SPHERE:
