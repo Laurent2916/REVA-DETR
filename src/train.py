@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     # Create Network
     module = MRCNNModule(
-        n_classes=3,
+        n_classes=2,
     )
 
     # load checkpoint
@@ -59,17 +59,19 @@ if __name__ == "__main__":
         precision=wandb.config.PRECISION,
         logger=logger,
         log_every_n_steps=5,
-        val_check_interval=200,
+        val_check_interval=250,
         callbacks=[
-            EarlyStopping(monitor="valid/bbox/map", mode="max", patience=10, min_delta=0.01),
-            ModelCheckpoint(monitor="valid/bbox/map", mode="max"),
+            EarlyStopping(monitor="valid/sum/map", mode="max", patience=10, min_delta=0.01),
+            ModelCheckpoint(monitor="valid/sum/map", mode="max"),
             # ModelPruning("l1_unstructured", amount=0.5),
             LearningRateMonitor(log_momentum=True),
+            # StochasticWeightAveraging(swa_lrs=1e-2),
             RichModelSummary(max_depth=2),
             RichProgressBar(),
             TableLog(),
         ],
         # profiler="advanced",
+        gradient_clip_val=1,
         num_sanity_val_steps=3,
         devices=[0],
     )

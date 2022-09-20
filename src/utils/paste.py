@@ -46,18 +46,16 @@ class RandomPaste(A.DualTransform):
         self.scale_range = scale_range
         self.nb = nb
 
-        self.augmentation_datas: List[AugmentationData] = []
-
     @property
     def targets_as_params(self):
         return ["image"]
 
-    def apply(self, img, **params):
+    def apply(self, img, augmentation_datas, **params):
         # convert img to Image, needed for `paste` function
         img = Image.fromarray(img)
 
         # paste spheres
-        for augmentation in self.augmentation_datas:
+        for augmentation in augmentation_datas:
             paste_img_aug = T.functional.adjust_contrast(
                 augmentation.paste_img,
                 contrast_factor=augmentation.contrast,
@@ -98,11 +96,11 @@ class RandomPaste(A.DualTransform):
 
         return np.array(img.convert("RGB"))
 
-    def apply_to_mask(self, mask, **params):
+    def apply_to_mask(self, mask, augmentation_datas, **params):
         # convert mask to Image, needed for `paste` function
         mask = Image.fromarray(mask)
 
-        for augmentation in self.augmentation_datas:
+        for augmentation in augmentation_datas:
             paste_mask_aug = T.functional.affine(
                 augmentation.paste_mask,
                 scale=0.95,
@@ -125,6 +123,8 @@ class RandomPaste(A.DualTransform):
         return np.array(mask.convert("L"))
 
     def get_params_dependent_on_targets(self, params):
+        # init augmentation list
+        augmentation_datas: List[AugmentationData] = []
 
         # load target image (w/ transparency)
         target_img = params["image"]
@@ -133,19 +133,19 @@ class RandomPaste(A.DualTransform):
         # generate augmentations
         ite = 0
         NB = rd.randint(1, self.nb)
-        while len(self.augmentation_datas) < NB:
+        while len(augmentation_datas) < NB:
             if ite > 100:
                 break
             else:
                 ite += 1
 
             # choose a random sphere image and its corresponding mask
-            if rd.random() > 0.5:
+            if rd.random() > 0.5 or len(self.chrome_sphere_images) == 0:
                 img_path = rd.choice(self.sphere_images)
-                value = len(self.augmentation_datas) + 1
+                value = len(augmentation_datas) + 1
             else:
                 img_path = rd.choice(self.chrome_sphere_images)
-                value = 255 - len(self.augmentation_datas)
+                value = 255 - len(augmentation_datas)
             mask_path = img_path.parent.joinpath("MASK.PNG")
 
             # load paste assets
@@ -161,7 +161,7 @@ class RandomPaste(A.DualTransform):
             shape = np.array(paste_shape * scale, dtype=np.uint)
 
             try:
-                self.augmentation_datas.append(
+                augmentation_datas.append(
                     AugmentationData(
                         position=(
                             rd.randint(0, target_shape[1] - shape[1]),
@@ -178,11 +178,18 @@ class RandomPaste(A.DualTransform):
                         paste_img=paste_img,
                         paste_mask=paste_mask,
                         value=value,
-                        other_augmentations=self.augmentation_datas,
+                        target_shape=tuple(target_shape),
+                        other_augmentations=augmentation_datas,
                     )
                 )
             except ValueError:
                 continue
+
+        params.update(
+            {
+                "augmentation_datas": augmentation_datas,
+            }
+        )
 
         return params
 
@@ -194,6 +201,7 @@ class AugmentationData:
     position: Tuple[int, int]
 
     shape: Tuple[int, int]
+    target_shape: Tuple[int, int]
     angle: float
 
     brightness: float

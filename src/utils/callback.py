@@ -2,12 +2,13 @@ import wandb
 from pytorch_lightning.callbacks import Callback
 
 columns = [
-    "ID",
     "image",
 ]
 class_labels = {
     1: "sphere",
-    2: "sphere_gt",
+    2: "chrome",
+    10: "sphere_gt",
+    20: "chrome_gt",
 }
 
 
@@ -19,20 +20,21 @@ class TableLog(Callback):
             # unpacking
             images, targets = batch
 
-            for i, (image, target) in enumerate(
-                zip(
-                    images,
-                    targets,
-                )
+            for image, target in zip(
+                images,
+                targets,
             ):
                 rows.append(
                     [
-                        i,
                         wandb.Image(
                             image.cpu(),
                             masks={
                                 "ground_truth": {
-                                    "mask_data": (target["masks"].cpu().sum(dim=0) > 0.5).int().numpy() * 2,
+                                    "mask_data": (target["masks"] * target["labels"][:, None, None])
+                                    .max(dim=0)
+                                    .values.mul(10)
+                                    .cpu()
+                                    .numpy(),
                                     "class_labels": class_labels,
                                 },
                             },
@@ -57,12 +59,10 @@ class TableLog(Callback):
             # unpacking
             images, targets = batch
 
-            for i, (image, target, pred) in enumerate(
-                zip(
-                    images,
-                    targets,
-                    outputs,
-                )
+            for image, target, pred in zip(
+                images,
+                targets,
+                outputs,
             ):
                 box_data_gt = [
                     {
@@ -73,7 +73,7 @@ class TableLog(Callback):
                             "maxY": int(target["boxes"][j][3]),
                         },
                         "domain": "pixel",
-                        "class_id": 2,
+                        "class_id": int(target["labels"][j] * 10),
                         "class_labels": class_labels,
                     }
                     for j in range(len(target["labels"]))
@@ -88,7 +88,7 @@ class TableLog(Callback):
                             "maxY": int(pred["boxes"][j][3]),
                         },
                         "domain": "pixel",
-                        "class_id": 1,
+                        "class_id": int(pred["labels"][j]),
                         "box_caption": f"{pred['scores'][j]:0.3f}",
                         "class_labels": class_labels,
                     }
@@ -97,16 +97,22 @@ class TableLog(Callback):
 
                 self.rows.append(
                     [
-                        i,
                         wandb.Image(
                             image.cpu(),
                             masks={
                                 "ground_truth": {
-                                    "mask_data": target["masks"].cpu().sum(dim=0).int().numpy() * 2,
+                                    "mask_data": (target["masks"] * target["labels"][:, None, None])
+                                    .max(dim=0)
+                                    .values.mul(10)
+                                    .cpu()
+                                    .numpy(),
                                     "class_labels": class_labels,
                                 },
                                 "predictions": {
-                                    "mask_data": pred["masks"].cpu().sum(dim=0).int().numpy(),
+                                    "mask_data": (pred["masks"] * pred["labels"][:, None, None])
+                                    .max(dim=0)
+                                    .values.cpu()
+                                    .numpy(),
                                     "class_labels": class_labels,
                                 },
                             },

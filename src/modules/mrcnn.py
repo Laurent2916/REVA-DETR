@@ -67,24 +67,24 @@ class MRCNNModule(pl.LightningModule):
         self.model = get_model_instance_segmentation(n_classes)
 
         # onnx export
-        self.example_input_array = torch.randn(1, 3, 1024, 1024, requires_grad=True).half()
+        # self.example_input_array = torch.randn(1, 3, 1024, 1024, requires_grad=True).half()
 
         # torchmetrics
         self.metric_bbox = MeanAveragePrecision(iou_type="bbox")
         self.metric_segm = MeanAveragePrecision(iou_type="segm")
 
-    def forward(self, imgs: torch.Tensor) -> Prediction:  # type: ignore
-        """Make a forward pass (prediction), usefull for onnx export.
+    # def forward(self, imgs: torch.Tensor) -> Prediction:  # type: ignore
+    #     """Make a forward pass (prediction), usefull for onnx export.
 
-        Args:
-            imgs (torch.Tensor): the images whose prediction we wish to make
+    #     Args:
+    #         imgs (torch.Tensor): the images whose prediction we wish to make
 
-        Returns:
-            torch.Tensor: the predictions
-        """
-        self.model.eval()
-        pred: Prediction = self.model(imgs)
-        return pred
+    #     Returns:
+    #         torch.Tensor: the predictions
+    #     """
+    #     self.model.eval()
+    #     pred: Prediction = self.model(imgs)
+    #     return pred
 
     def training_step(self, batch: torch.Tensor, batch_idx: int) -> float:  # type: ignore
         """PyTorch training step.
@@ -146,15 +146,22 @@ class MRCNNModule(pl.LightningModule):
         Args:
             outputs (List[Prediction]): list of predictions from validation steps
         """
-        # compute and log bounding boxes metrics
-        metric_dict = self.metric_bbox.compute()
-        metric_dict = {f"valid/bbox/{key}": val for key, val in metric_dict.items()}
-        self.log_dict(metric_dict)
+        # compute metrics
+        metric_dict_bbox = self.metric_bbox.compute()
+        metric_dict_segm = self.metric_segm.compute()
+        metric_dict_sum = {
+            f"valid/sum/{k}": metric_dict_bbox.get(k, 0) + metric_dict_segm.get(k, 0)
+            for k in set(metric_dict_bbox) & set(metric_dict_segm)
+        }
 
-        # compute and log semgentation metrics
-        metric_dict = self.metric_segm.compute()
-        metric_dict = {f"valid/segm/{key}": val for key, val in metric_dict.items()}
-        self.log_dict(metric_dict)
+        # change metrics keys
+        metric_dict_bbox = {f"valid/bbox/{key}": val for key, val in metric_dict_bbox.items()}
+        metric_dict_segm = {f"valid/segm/{key}": val for key, val in metric_dict_segm.items()}
+
+        # log metrics
+        self.log_dict(metric_dict_bbox)
+        self.log_dict(metric_dict_segm)
+        self.log_dict(metric_dict_sum)
 
     def configure_optimizers(self) -> Dict[str, Any]:
         """PyTorch optimizers and Schedulers.
