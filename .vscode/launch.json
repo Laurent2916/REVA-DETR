@@ -1,29 +1,36 @@
 {
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Train",
-      "type": "python",
-      "request": "launch",
-      "program": "${workspaceFolder}/src/train.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-    },
-    {
-      "name": "Predict",
-      "type": "python",
-      "request": "launch",
-      "program": "${workspaceFolder}/src/predict.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "args": [
-        "--input",
-        "images/input.png",
-        "--output",
-        "images/output.png",
-        "--model",
-        "checkpoints/model.onnx"
-      ]
-    }
-  ]
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/main.py",
+            // "program": "${workspaceFolder}/src/spheres.py",
+            // "program": "${workspaceFolder}/src/datamodule.py",
+            "args": [
+                // "fit",
+                "predict",
+                // "--ckpt_path",
+                // "${workspaceFolder}/lightning_logs/version_264/checkpoints/epoch=9-st&ep=1000.ckpt",
+                "--data.num_workers",
+                "0",
+                "--trainer.benchmark",
+                "false",
+                "--trainer.num_sanity_val_steps",
+                "0",
+                "--data.persistent_workers",
+                "false",
+                "--data.batch_size",
+                "1",
+                "--trainer.val_check_interval",
+                "1"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        }
+    ]
 }

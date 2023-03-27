@@ -1,52 +1,55 @@
 [tool.poetry]
-authors = ["Laurent Fainsin <laurent@fainsin.bzh>"]
-description = "Simple neural network to detect calibration spheres in images."
-license = "MIT"
-name = "sphereDetect"
-readme = "README.md"
-version = "2.0.0"
+authors = ["Laurent Fainsin <laurentfainsin@protonmail.com>"]
+description = ""
+name = "label-studio"
+version = "1.0.0"
 
 [tool.poetry.dependencies]
-albumentations = "^1.2.1"
-lightning-bolts = "^0.5.0"
-numpy = "^1.23.2"
-pycocotools = "^2.0.4"
-python = ">=3.8,<3.11"
-pytorch-lightning = "^1.7.4"
-rich = "^12.5.1"
-torch = "^1.12.1"
-torchmetrics = "^0.9.3"
-torchvision = "^0.13.1"
-wandb = "^0.13.2"
+datasets = "^2.9.0"
+fastapi = "0.86.0"
+jsonargparse = {extras = ["signatures"], version = "^4.20.0"}
+lightning = "1.9.1"
+matplotlib = "^3.7.0"
+numpy = "^1.24.2"
+opencv-python = "^4.7.0.72"
+opencv-python-headless = "^4.7.0.72"
+python = ">=3.8,<3.12"
+rich = "^13.3.1"
+scipy = "^1.10.0"
+timm = "^0.6.12"
+torch = "^1.13.1"
+transformers = "^4.26.1"
 
 [tool.poetry.group.notebooks]
 optional = true
 
 [tool.poetry.group.notebooks.dependencies]
-ipykernel = "^6.15.3"
-matplotlib = "^3.5.3"
-onnx = "^1.12.0"
-onnxruntime = "^1.12.1"
-onnxruntime-gpu = "^1.12.1"
+ipykernel = "^6.20.2"
+ipywidgets = "^8.0.4"
+jupyter = "^1.0.0"
+matplotlib = "^3.6.3"
 
 [tool.poetry.group.dev.dependencies]
 Flake8-pyproject = "^1.1.0"
 bandit = "^1.7.4"
-black = {extras = ["jupyter"], version = "^22.8.0"}
+black = "^22.8.0"
 flake8 = "^5.0.4"
 flake8-docstrings = "^1.6.0"
 isort = "^5.10.1"
 mypy = "^0.971"
 pre-commit = "^2.20.0"
+tensorboard = "^2.12.0"
+torchtyping = "^0.1.4"
+torch-tb-profiler = "^0.4.1"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core"]
 
 [tool.flake8]
 # rules ignored
-extend-ignore = ["W503", "D401", "D403"]
-per-file-ignores = ["__init__.py:F401", "__init__.py:D104"]
+extend-ignore = ["W503", "D401", "D100", "D104"]
+per-file-ignores = ["__init__.py:F401"]
 # black
 ignore = "E203"
 max-line-length = 120
