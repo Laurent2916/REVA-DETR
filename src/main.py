@@ -1,12 +1,11 @@
-from lightning.pytorch.callbacks import (
+from datamodule import DETRDataModule
+from module import DETR
+from pytorch_lightning.callbacks import (
     ModelCheckpoint,
     RichModelSummary,
     RichProgressBar,
 )
-from lightning.pytorch.cli import LightningCLI
-
-from datamodule import DETRDataModule
-from module import DETR
+from pytorch_lightning.cli import LightningCLI
 
 
 class MyLightningCLI(LightningCLI):

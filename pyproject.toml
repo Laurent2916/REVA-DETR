@@ -1,58 +1,6 @@
-[tool.poetry]
-authors = ["Laurent Fainsin <laurentfainsin@protonmail.com>"]
-description = ""
-name = "label-studio"
-version = "1.0.0"
-
-[tool.poetry.dependencies]
-datasets = "^2.9.0"
-fastapi = "0.86.0"
-jsonargparse = {extras = ["signatures"], version = "^4.20.0"}
-lightning = "1.9.1"
-matplotlib = "^3.7.0"
-numpy = "^1.24.2"
-opencv-python = "^4.7.0.72"
-opencv-python-headless = "^4.7.0.72"
-python = ">=3.8,<3.12"
-rich = "^13.3.1"
-scipy = "^1.10.0"
-timm = "^0.6.12"
-torch = "^1.13.1"
-transformers = "^4.26.1"
-
-[tool.poetry.group.notebooks]
-optional = true
-
-[tool.poetry.group.notebooks.dependencies]
-ipykernel = "^6.20.2"
-ipywidgets = "^8.0.4"
-jupyter = "^1.0.0"
-matplotlib = "^3.6.3"
-
-[tool.poetry.group.dev.dependencies]
-Flake8-pyproject = "^1.1.0"
-bandit = "^1.7.4"
-black = "^22.8.0"
-flake8 = "^5.0.4"
-flake8-docstrings = "^1.6.0"
-isort = "^5.10.1"
-mypy = "^0.971"
-pre-commit = "^2.20.0"
-tensorboard = "^2.12.0"
-torchtyping = "^0.1.4"
-torch-tb-profiler = "^0.4.1"
-
-[build-system]
-build-backend = "poetry.core.masonry.api"
-requires = ["poetry-core"]
-
-[tool.flake8]
-# rules ignored
-extend-ignore = ["W503", "D401", "D100", "D104"]
-per-file-ignores = ["__init__.py:F401"]
-# black
-ignore = "E203"
-max-line-length = 120
+[tool.ruff]
+line-length = 120
+select = ["E", "F", "I"]
 
 [tool.black]
 exclude = '''

@@ -74,8 +74,6 @@ class SpherePredict(datasets.GeneratorBasedBuilder):
 
 
 if __name__ == "__main__":
-    from PIL import ImageDraw
-
     # load dataset
     dataset = datasets.load_dataset("src/spheres_predict.py", split="train")
 

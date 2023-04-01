@@ -1,8 +1,6 @@
-data/
-dataset*/
-*.parquet
-.venv/
-lightning_logs/
-__pycache__/
+dataset*
+lightning_logs
+__pycache__
 
 *.jpg
+*.png

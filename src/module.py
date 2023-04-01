@@ -1,6 +1,6 @@
 import torch
-from lightning.pytorch import LightningModule
 from PIL import ImageDraw
+from pytorch_lightning import LightningModule
 from transformers import (
     DetrForObjectDetection,
     get_cosine_with_hard_restarts_schedule_with_warmup,

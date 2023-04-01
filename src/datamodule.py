@@ -1,9 +1,8 @@
 import datasets
 import torch
-from lightning.pytorch import LightningDataModule
-from lightning.pytorch.trainer.supporters import CombinedLoader
+from pytorch_lightning import LightningDataModule
+from pytorch_lightning.utilities import CombinedLoader
 from torch.utils.data import DataLoader
-from torchvision.datasets import ImageFolder
 from torchvision.transforms import AugMix
 from transformers import DetrFeatureExtractor
 
