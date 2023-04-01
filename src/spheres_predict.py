@@ -1,10 +1,8 @@
-"""Dataset class AI or NOT HuggingFace competition."""
-
 import pathlib
 
 import datasets
 
-dataset_path = pathlib.Path("/home/laurent/proj-long/dataset_predict/")
+dataset_path = pathlib.Path("./dataset_predict/")
 
 _VERSION = "1.0.0"
 
@@ -21,9 +19,7 @@ _NAMES = [
 ]
 
 
-class spheresSynth(datasets.GeneratorBasedBuilder):
-    """spheres image dataset."""
-
+class SpherePredict(datasets.GeneratorBasedBuilder):
     def _info(self):
         return datasets.DatasetInfo(
             description=_DESCRIPTION,
@@ -98,16 +94,5 @@ if __name__ == "__main__":
         print(f"image path: {image.filename}")
         print(f"data: {dataset[idx]}")
 
-        draw = ImageDraw.Draw(image)
-        for obj in dataset[idx]["objects"]:
-            bbox = (
-                obj["bbox"][0],
-                obj["bbox"][1],
-                obj["bbox"][0] + obj["bbox"][2],
-                obj["bbox"][1] + obj["bbox"][3],
-            )
-            draw.rectangle(bbox, outline="red", width=3)
-            draw.text(bbox[:2], text=id2label[obj["category_id"]], fill="black")
-
         # save image
-        image.save(f"example_{idx}.jpg")
+        image.save(f"example_predict_{idx}.jpg")

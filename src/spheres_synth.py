@@ -1,12 +1,8 @@
-"""Dataset class AI or NOT HuggingFace competition."""
-
 import pathlib
 
-import cv2
 import datasets
-import numpy as np
 
-dataset_path = pathlib.Path("/home/laurent/proj-long/dataset_render/")
+dataset_path = pathlib.Path("./dataset_render/")
 
 _VERSION = "1.0.0"
 
@@ -23,8 +19,7 @@ _NAMES = [
 ]
 
 
-class spheresSynth(datasets.GeneratorBasedBuilder):
-    """spheres image dataset."""
+class SphereSynth(datasets.GeneratorBasedBuilder):
 
     def _info(self):
         return datasets.DatasetInfo(
@@ -113,7 +108,7 @@ class spheresSynth(datasets.GeneratorBasedBuilder):
                         category = "Chrome"
                     elif category == "Cyan":
                         category = "Shiny"
-                    
+
                     categories.append(category)
 
             # generate data
@@ -156,8 +151,8 @@ if __name__ == "__main__":
     for idx in range(10):
         image = dataset[idx]["image"]
 
-        # print(f"image path: {image.filename}")
-        # print(f"data: {dataset[idx]}")
+        print(f"image path: {image.filename}")
+        print(f"data: {dataset[idx]}")
 
         draw = ImageDraw.Draw(image)
         for obj in dataset[idx]["objects"]:
@@ -171,4 +166,4 @@ if __name__ == "__main__":
             draw.text(bbox[:2], text=id2label[obj["category_id"]], fill="black")
 
         # save image
-        image.save(f"example_{idx}.jpg")
+        image.save(f"example_synth_{idx}.jpg")

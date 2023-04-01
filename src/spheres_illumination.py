@@ -1,12 +1,9 @@
-"""Dataset class AI or NOT HuggingFace competition."""
-
+import json
 import pathlib
 
-import json
 import datasets
 
-dataset_path_train = pathlib.Path("/home/laurent/proj-long/dataset_illumination/")
-dataset_path_test = pathlib.Path("/home/laurent/proj-long/dataset_illumination_test/")
+dataset_path_train = pathlib.Path("./dataset_illumination/")
 
 _VERSION = "1.0.0"
 
@@ -23,9 +20,7 @@ _NAMES = [
 ]
 
 
-class spheresSynth(datasets.GeneratorBasedBuilder):
-    """spheres image dataset."""
-
+class SphereIllumination(datasets.GeneratorBasedBuilder):
     def _info(self):
         return datasets.DatasetInfo(
             description=_DESCRIPTION,
@@ -60,12 +55,6 @@ class spheresSynth(datasets.GeneratorBasedBuilder):
                     "dataset_path": dataset_path_train,
                 },
             ),
-            datasets.SplitGenerator(
-                name=datasets.Split.TEST,
-                gen_kwargs={
-                    "dataset_path": dataset_path_test,
-                },
-            ),
         ]
 
     def _generate_examples(self, dataset_path: pathlib.Path):
@@ -75,7 +64,7 @@ class spheresSynth(datasets.GeneratorBasedBuilder):
 
         original_width = 6020
         original_height = 4024
-        
+
         # create png iterator
         object_index = 0
         jpgs = dataset_path.rglob("*.jpg")
@@ -172,4 +161,4 @@ if __name__ == "__main__":
             draw.text(bbox[:2], text=id2label[obj["category_id"]], fill="black")
 
         # save image
-        image.save(f"example_{idx}.jpg")
+        image.save(f"example_illumination_{idx}.jpg")

@@ -1,5 +1,3 @@
-"""Dataset class AI or NOT HuggingFace competition."""
-
 import json
 import pathlib
 
@@ -8,8 +6,8 @@ import datasets
 import numpy as np
 
 prefix = "/data/local-files/?d=spheres/"
-dataset_path = pathlib.Path("./dataset3/spheres/")
-annotation_path = pathlib.Path("./annotations2.json")
+dataset_path = pathlib.Path("./dataset_antoine_laurent/")
+annotation_path = dataset_path / "annotations.json"
 
 _VERSION = "1.0.0"
 
@@ -20,20 +18,13 @@ _HOMEPAGE = ""
 _LICENSE = ""
 
 _NAMES = [
-    # "White",
-    # "Black",
-    # "Grey",
-    # "Red",
-    # "Chrome",
     "Matte",
     "Shiny",
     "Chrome",
 ]
 
 
-class spheres(datasets.GeneratorBasedBuilder):
-    """spheres image dataset."""
-
+class SphereAntoineLaurent(datasets.GeneratorBasedBuilder):
     def _info(self):
         return datasets.DatasetInfo(
             description=_DESCRIPTION,
@@ -83,10 +74,6 @@ class spheres(datasets.GeneratorBasedBuilder):
                 image_name = image_name[len(prefix) :]
                 image_name = pathlib.Path(image_name)
 
-                # skip shitty images
-                # if "Soulages" in str(image_name):
-                #     continue
-
                 # check image_name exists
                 assert (dataset_path / image_name).is_file()
 
@@ -117,7 +104,7 @@ class spheres(datasets.GeneratorBasedBuilder):
                     label = annotations[0]["value"]["keypointlabels"][0]
                     for annotation in annotations:
                         assert annotation["value"]["keypointlabels"][0] == label
-                    
+
                     if label == "White":
                         label = "Matte"
                     elif label == "Black":
@@ -202,7 +189,7 @@ if __name__ == "__main__":
 
     # load dataset
     dataset = datasets.load_dataset("src/spheres.py", split="train")
-    print("a")
+    print("dataset loaded")
 
     labels = dataset.features["objects"][0]["category_id"].names
     id2label = {k: v for k, v in enumerate(labels)}
@@ -214,15 +201,11 @@ if __name__ == "__main__":
     print()
 
     idx = 0
-
     while True:
         image = dataset[idx]["image"]
         if "DSC_4234" in image.filename:
             break
         idx += 1
-
-        if idx > 10000:
-            break
 
     print(f"image path: {image.filename}")
     print(f"data: {dataset[idx]}")
@@ -239,4 +222,4 @@ if __name__ == "__main__":
         draw.text(bbox[:2], text=id2label[obj["category_id"]], fill="black")
 
     # save image
-    image.save("example.jpg")
+    image.save("example_antoine_laurent.jpg")
