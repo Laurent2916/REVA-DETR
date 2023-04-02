@@ -1,5 +1,4 @@
 {
-  // "python.defaultInterpreterPath": ".venv/bin/python",
   "python.analysis.typeCheckingMode": "off",
   "python.formatting.provider": "black",
   "editor.formatOnSave": true,
@@ -10,6 +9,7 @@
   "python.linting.banditEnabled": true,
   "python.languageServer": "Pylance",
   "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.codeActionsOnSave": {
       "source.organizeImports": true
     }
