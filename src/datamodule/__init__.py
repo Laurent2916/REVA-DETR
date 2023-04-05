@@ -1,2 +1,2 @@
-from DETR import DETRDataModule
-from FasterRCNN import FasterRCNNDataModule
+from .DETR import DETRDataModule
+from .FasterRCNN import FasterRCNNDataModule

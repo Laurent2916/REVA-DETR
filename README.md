@@ -25,7 +25,7 @@ python src/main.py fit
 
 Start inference on images:
 ```bash
-python src/main predict --ckpt_path <path_to_checkpoint>
+python src/main.py predict --ckpt_path <path_to_checkpoint>
 ```
 
 ## License
