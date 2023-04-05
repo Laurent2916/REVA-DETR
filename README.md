@@ -8,6 +8,12 @@ git clone https://github.com/Laurent2916/REVA-DETR.git
 cd REVA-DETR/
 ```
 
+Install and activate the environment:
+```bash
+micromamba install -f environment.yml
+micromamba activate qcav
+```
+
 ## Usage
 
 Everything is managed thanks to [Lightning CLI](https://lightning.ai/docs/pytorch/latest/api/lightning.pytorch.cli.LightningCLI.html#lightning.pytorch.cli.LightningCLI) !
