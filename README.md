@@ -28,6 +28,17 @@ Start inference on images:
 python src/main.py predict --ckpt_path <path_to_checkpoint>
 ```
 
+Quick and dirty way to export to `.onnx`:
+```python
+>>> from src.module import DETR
+>>> checkpoint = "<path_to_checkpoint>"
+>>> model = DETR.load_from_checkpoint(checkpoint)
+>>> model.net.save_pretrained("hugginface_checkpoint")
+```
+```bash
+python -m transformers.onnx --model=hugginface_checkpoint onnx_export/
+```
+
 ## License
 
 Distributed under the [MIT](https://choosealicense.com/licenses/mit/) license. \

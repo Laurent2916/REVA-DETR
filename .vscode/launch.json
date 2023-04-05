@@ -17,7 +17,7 @@
         // "--ckpt_path",
         // "${workspaceFolder}/lightning_logs/version_264/checkpoints/epoch=9-st&ep=1000.ckpt",
         "--data.num_workers",
-        "0",
+        "1",
         "--trainer.benchmark",
         "false",
         "--trainer.num_sanity_val_steps",
