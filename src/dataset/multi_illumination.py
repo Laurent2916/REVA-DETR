@@ -1,10 +1,11 @@
+import json
 import pathlib
 
 import datasets
 
-dataset_path = pathlib.Path("./dataset_render/")
+dataset_path_train = pathlib.Path("./dataset_illumination/")
 
-_VERSION = "1.0.0"
+_VERSION = "2.0.0"
 
 _DESCRIPTION = ""
 
@@ -19,8 +20,7 @@ _NAMES = [
 ]
 
 
-class SphereSynth(datasets.GeneratorBasedBuilder):
-
+class SphereIllumination(datasets.GeneratorBasedBuilder):
     def _info(self):
         return datasets.DatasetInfo(
             description=_DESCRIPTION,
@@ -52,69 +52,63 @@ class SphereSynth(datasets.GeneratorBasedBuilder):
             datasets.SplitGenerator(
                 name=datasets.Split.TRAIN,
                 gen_kwargs={
-                    "dataset_path": dataset_path,
+                    "dataset_path": dataset_path_train,
                 },
             ),
         ]
 
     def _generate_examples(self, dataset_path: pathlib.Path):
         """Generate images and labels for splits."""
+        width = 1500
+        height = 1000
+
+        original_width = 6020
+        original_height = 4024
+
         # create png iterator
-        width = 1200
-        height = 675
         object_index = 0
-        pngs = dataset_path.glob("*.png")
-        for index, png in enumerate(pngs):
+        jpgs = dataset_path.rglob("*.jpg")
+        for index, jpg in enumerate(jpgs):
+
+            # filter out probe images
+            if "probes" in jpg.parts:
+                continue
+
+            # filter out thumbnails
+            if "thumb" in jpg.stem:
+                continue
+
             # open corresponding csv file
-            csv = dataset_path / (png.stem + ".csv")
+            json_file = jpg.parent / "meta.json"
 
-            # read csv lines
-            with open(csv, "r") as f:
-                lines = f.readlines()
-                lines = [line.strip().split(",") for line in lines]
-                lines = [
+            # read json
+            with open(json_file, "r") as f:
+                meta = json.load(f)
+
+                gray = (
                     (
-                        float(line[0]),
-                        1 - float(line[1]),
-                        float(line[2]),
-                        1 - float(line[3]),
-                        line[4].strip()
-                    ) for line in lines
-                ]
+                        meta["gray"]["bounding_box"]["x"] / original_width * width,
+                        meta["gray"]["bounding_box"]["y"] / original_height * height,
+                        meta["gray"]["bounding_box"]["w"] / original_width * width,
+                        meta["gray"]["bounding_box"]["h"] / original_height * height,
+                    ),
+                    "Matte",
+                )
 
-                bboxes = [
+                chrome = (
                     (
-                        line[0] * width,
-                        line[3] * height,
-                        (line[2] - line[0]) * width,
-                        (line[1] - line[3]) * height,
-                    )
-                    for line in lines
-                ]
-
-                categories = []
-                for line in lines:
-                    category = line[4]
-
-                    if category == "White":
-                        category = "Matte"
-                    elif category == "Black":
-                        category = "Shiny"
-                    elif category == "Grey":
-                        category = "Matte"
-                    elif category == "Red":
-                        category = "Shiny"
-                    elif category == "Chrome":
-                        category = "Chrome"
-                    elif category == "Cyan":
-                        category = "Shiny"
-
-                    categories.append(category)
+                        meta["chrome"]["bounding_box"]["x"] / original_width * width,
+                        meta["chrome"]["bounding_box"]["y"] / original_height * height,
+                        meta["chrome"]["bounding_box"]["w"] / original_width * width,
+                        meta["chrome"]["bounding_box"]["h"] / original_height * height,
+                    ),
+                    "Chrome",
+                )
 
             # generate data
             data = {
                 "image_id": index,
-                "image": str(png),
+                "image": str(jpg),
                 "width": width,
                 "height": height,
                 "objects": [
@@ -126,7 +120,7 @@ class SphereSynth(datasets.GeneratorBasedBuilder):
                         "bbox": bbox,
                         "iscrowd": False,
                     }
-                    for bbox, category in zip(bboxes, categories)
+                    for bbox, category in [gray, chrome]
                 ],
             }
 
@@ -137,7 +131,8 @@ if __name__ == "__main__":
     from PIL import ImageDraw
 
     # load dataset
-    dataset = datasets.load_dataset("src/spheres_synth.py", split="train")
+    dataset = datasets.load_dataset("src/spheres_illumination.py", split="train")
+    dataset = dataset.shuffle()
 
     labels = dataset.features["objects"][0]["category_id"].names
     id2label = {k: v for k, v in enumerate(labels)}
@@ -166,4 +161,4 @@ if __name__ == "__main__":
             draw.text(bbox[:2], text=id2label[obj["category_id"]], fill="black")
 
         # save image
-        image.save(f"example_synth_{idx}.jpg")
+        image.save(f"example_illumination_{idx}.jpg")

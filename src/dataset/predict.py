@@ -4,7 +4,7 @@ import datasets
 
 dataset_path = pathlib.Path("./dataset_predict/")
 
-_VERSION = "1.0.0"
+_VERSION = "2.0.2"
 
 _DESCRIPTION = ""
 
@@ -60,7 +60,6 @@ class SpherePredict(datasets.GeneratorBasedBuilder):
         jpgs = dataset_path.rglob("*.jpg")
 
         for index, jpg in enumerate(jpgs):
-
             print(index, jpg, 2)
 
             # generate data

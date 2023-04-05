@@ -1,6 +1,6 @@
 import torch
+from lightning.pytorch import LightningModule
 from PIL import ImageDraw
-from pytorch_lightning import LightningModule
 from transformers import (
     DetrForObjectDetection,
     get_cosine_with_hard_restarts_schedule_with_warmup,
@@ -33,13 +33,14 @@ class DETR(LightningModule):
         """
         super().__init__()
 
-        # replace COCO classification head with custom head
+        # get DETR model
         self.net = DetrForObjectDetection.from_pretrained(
             "facebook/detr-resnet-50",
             ignore_mismatched_sizes=True,
             num_queries=num_queries,
             num_labels=num_labels,
         )
+        torch.compile(self.net)
 
         # cf https://github.com/PyTorchLightning/pytorch-lightning/pull/1896
         self.lr = lr
@@ -47,7 +48,6 @@ class DETR(LightningModule):
         self.weight_decay = weight_decay
         self.warmup_steps = warmup_steps
         self.prediction_threshold = prediction_threshold
-
         self.save_hyperparameters()
 
     def forward(self, pixel_values, pixel_mask, **kwargs):
@@ -100,7 +100,7 @@ class DETR(LightningModule):
         """Training step."""
         outputs = self.common_step(batch, batch_idx)
 
-        # logs metrics for each training_step and the average across the epoch
+        # logs metrics for each training_step
         loss = 0
         for dataloader_name, output in outputs.items():
             loss += output["loss"]
@@ -117,7 +117,7 @@ class DETR(LightningModule):
         """Validation step."""
         outputs = self.common_step(batch, batch_idx)
 
-        # logs metrics for each validation_step and the average across the epoch
+        # logs metrics for each validation_step
         loss = 0
         for dataloader_name, output in outputs.items():
             loss += output["loss"]

@@ -1,11 +1,11 @@
-from datamodule import DETRDataModule
-from module import DETR
-from pytorch_lightning.callbacks import (
+from datamodule import DETRDataModule, FasterRCNNDataModule  # noqa: F401
+from lightning.pytorch.callbacks import (
     ModelCheckpoint,
     RichModelSummary,
     RichProgressBar,
 )
-from pytorch_lightning.cli import LightningCLI
+from lightning.pytorch.cli import LightningCLI
+from module import DETR, FasterRCNN  # noqa: F401
 
 
 class MyLightningCLI(LightningCLI):
@@ -15,12 +15,11 @@ class MyLightningCLI(LightningCLI):
         """Add arguments to parser."""
         parser.set_defaults(
             {
-                "trainer.multiple_trainloader_mode": "max_size_cycle",
                 "trainer.max_steps": 5000,
                 "trainer.max_epochs": 1,
                 "trainer.accelerator": "gpu",
-                "trainer.devices": "[1]",
-                "trainer.strategy": "dp",
+                "trainer.devices": "[0]",
+                "trainer.strategy": "auto",
                 "trainer.log_every_n_steps": 25,
                 "trainer.val_check_interval": 200,
                 "trainer.num_sanity_val_steps": 10,

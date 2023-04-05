@@ -1,7 +1,7 @@
 import datasets
 import torch
-from pytorch_lightning import LightningDataModule
-from pytorch_lightning.utilities import CombinedLoader
+from lightning.pytorch import LightningDataModule
+from lightning.pytorch.utilities import CombinedLoader
 from torch.utils.data import DataLoader
 from torchvision.transforms import AugMix
 from transformers import DetrFeatureExtractor
@@ -41,9 +41,9 @@ class DETRDataModule(LightningDataModule):
     def prepare_data(self):
         """Download data and prepare for training."""
         # load datasets
-        self.illumination = datasets.load_dataset("src/spheres_illumination.py", split="train")
-        self.render = datasets.load_dataset("src/spheres_synth.py", split="train")
-        self.real = datasets.load_dataset("src/spheres.py", split="train")
+        self.illumination = datasets.load_dataset("src/dataset/multi_illumination.py", split="train")
+        self.render = datasets.load_dataset("src/dataset/synthetic.py", split="train")
+        self.real = datasets.load_dataset("src/dataset/antoine_laurent.py", split="train")
 
         # split datasets
         self.illumination = self.illumination.train_test_split(test_size=0.01)
@@ -56,9 +56,7 @@ class DETRDataModule(LightningDataModule):
         print(f"real: {self.real}")
 
         # other datasets
-        self.test_ds = datasets.load_dataset("src/spheres_illumination.py", split="test")
-        # self.predict_ds = datasets.load_dataset("src/spheres.py", split="train").shuffle().select(range(16))
-        self.predict_ds = datasets.load_dataset("src/spheres_predict.py", split="train")
+        self.predict_ds = datasets.load_dataset("src/dataset/predict.py", split="train")
 
         # define AugMix transform
         self.mix = AugMix()

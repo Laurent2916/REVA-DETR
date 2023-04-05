@@ -7,9 +7,9 @@ import numpy as np
 
 prefix = "/data/local-files/?d=spheres/"
 dataset_path = pathlib.Path("./dataset_antoine_laurent/")
-annotation_path = dataset_path / "annotations.json"
+annotation_path = dataset_path / "annotations.json"  # from labelstudio
 
-_VERSION = "1.0.0"
+_VERSION = "2.0.0"
 
 _DESCRIPTION = ""
 
@@ -105,6 +105,7 @@ class SphereAntoineLaurent(datasets.GeneratorBasedBuilder):
                     for annotation in annotations:
                         assert annotation["value"]["keypointlabels"][0] == label
 
+                    # convert labels
                     if label == "White":
                         label = "Matte"
                     elif label == "Black":

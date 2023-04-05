@@ -17,8 +17,8 @@ dependencies:
   - pytorch
   - torchvision
   - torchaudio
-  - pytorch-cuda=11.8
-  - lightning
+  - pytorch-cuda
+  - lightning # currently broken, install manually with pip
   # deep learning libraries
   - transformers
   - datasets
